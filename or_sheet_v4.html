@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OR Case Reference Sheet</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --ink: #0f1117;
+    --paper: #f8f6f1;
+    --rule: #c8c2b6;
+    --accent: #1a3a5c;
+    --accent-light: #e8eef4;
+    --red: #c0392b;
+    --green: #1d6a47;
+    --muted: #7a7468;
+    --box-bg: #ffffff;
+    --border: 1px solid var(--rule);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #e8e4dc; font-family: 'DM Sans', sans-serif; font-size: 10.5pt; color: var(--ink); }
+
+  /* ── TOOLBAR ── */
+  .toolbar {
+    position: fixed; top: 0; left: 0; right: 0;
+    background: var(--accent); color: white;
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 14px; z-index: 100;
+    font-family: 'DM Mono', monospace; font-size: 8pt; flex-wrap: wrap;
+  }
+  .toolbar-title { font-size: 9pt; font-weight: 600; letter-spacing: 1px; margin-right: 6px; }
+  .tool-sep { width: 1px; height: 22px; background: rgba(255,255,255,0.2); margin: 0 2px; }
+  .tb-btn {
+    background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 4px; color: white; padding: 4px 9px; cursor: pointer;
+    font-family: 'DM Mono', monospace; font-size: 8pt; transition: background 0.15s; white-space: nowrap;
+  }
+  .tb-btn:hover { background: rgba(255,255,255,0.25); }
+  .tb-btn.active { background: rgba(255,255,255,0.3); border-color: rgba(255,255,255,0.6); }
+  .tb-btn.sheets-btn { background: rgba(29,106,71,0.6); border-color: rgba(100,220,150,0.5); font-weight: 600; }
+  .tb-btn.sheets-btn:hover { background: rgba(29,106,71,0.85); }
+  .tb-btn.danger-btn { background: rgba(192,57,43,0.4); border-color: rgba(255,120,100,0.4); }
+  .tb-btn.danger-btn:hover { background: rgba(192,57,43,0.65); }
+  .color-swatch { width: 19px; height: 19px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.35); cursor: pointer; }
+  .color-swatch.active { border-color: white; }
+  .size-btn { width: 24px; height: 24px; border-radius: 50%; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25); color: white; font-size: 9pt; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .size-btn.active, .size-btn:hover { background: rgba(255,255,255,0.3); }
+  .tb-label { font-size: 7pt; color: rgba(255,255,255,0.55); }
+  .tb-spacer { flex: 1; }
+  .sheets-status { font-size: 7.5pt; font-family: 'DM Mono', monospace; color: rgba(255,255,255,0.6); }
+  .sheets-status.ok { color: #7defa7; }
+  .sheets-status.err { color: #ffaaaa; }
+
+  /* ── SETUP BANNER ── */
+  .setup-banner {
+    position: fixed; top: 42px; left: 0; right: 0; z-index: 99;
+    background: #f39c12; color: white;
+    padding: 6px 16px; font-size: 8.5pt;
+    display: flex; align-items: center; gap: 10px;
+    font-family: 'DM Mono', monospace;
+  }
+  .setup-banner.hidden { display: none; }
+  .setup-banner a { color: white; font-weight: 600; }
+  .setup-banner-close { margin-left: auto; cursor: pointer; opacity: 0.7; }
+  .setup-banner-close:hover { opacity: 1; }
+
+  /* ── MODAL ── */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: white; border-radius: 8px; padding: 24px; max-width: 540px; width: 92%; max-height: 85vh; overflow-y: auto; box-shadow: 0 8px 40px rgba(0,0,0,0.25); }
+  .modal h2 { font-size: 13pt; color: var(--accent); margin-bottom: 4px; }
+  .modal .modal-sub { font-size: 8pt; color: var(--muted); font-family: 'DM Mono', monospace; letter-spacing: 1px; margin-bottom: 16px; }
+  .modal-close { margin-top: 12px; background: none; border: var(--border); padding: 8px 16px; border-radius: 5px; cursor: pointer; font-family: 'DM Mono', monospace; font-size: 8pt; color: var(--muted); width: 100%; }
+  .modal-close:hover { background: #f0ede8; }
+
+  /* Config form */
+  .config-field { margin-bottom: 14px; }
+  .config-label { font-size: 7.5pt; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); font-family: 'DM Mono', monospace; display: block; margin-bottom: 5px; }
+  .config-input { width: 100%; border: 1.5px solid var(--rule); border-radius: 5px; padding: 8px 10px; font-size: 9pt; font-family: 'DM Mono', monospace; color: var(--ink); outline: none; transition: border-color 0.15s; }
+  .config-input:focus { border-color: var(--accent); }
+  .config-save-btn { width: 100%; padding: 10px; background: var(--accent); color: white; border: none; border-radius: 6px; font-size: 10pt; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; margin-top: 4px; }
+  .config-save-btn:hover { background: #122d47; }
+  .config-note { font-size: 8pt; color: var(--muted); margin-top: 8px; line-height: 1.5; }
+  .config-note code { background: #f0ede8; padding: 1px 5px; border-radius: 3px; font-family: 'DM Mono', monospace; font-size: 8pt; }
+  .step-list { list-style: none; counter-reset: steps; }
+  .step-list li { counter-increment: steps; display: flex; gap: 10px; margin-bottom: 10px; font-size: 9pt; line-height: 1.5; }
+  .step-list li::before { content: counter(steps); width: 22px; height: 22px; background: var(--accent); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 8pt; font-weight: 600; flex-shrink: 0; margin-top: 1px; font-family: 'DM Mono', monospace; }
+  .step-list code { background: #f0ede8; padding: 1px 5px; border-radius: 3px; font-family: 'DM Mono', monospace; font-size: 8pt; }
+  .divider { border: none; border-top: 1px solid var(--rule); margin: 16px 0; }
+
+  /* Export modal */
+  .modal-btn { display: block; width: 100%; padding: 11px 14px; margin-bottom: 10px; border-radius: 6px; border: 1.5px solid var(--rule); background: var(--paper); cursor: pointer; text-align: left; font-family: 'DM Sans', sans-serif; transition: all 0.15s; }
+  .modal-btn:hover { border-color: var(--accent); background: var(--accent-light); }
+  .modal-btn .btn-title { font-size: 10pt; font-weight: 600; color: var(--accent); }
+  .modal-btn .btn-desc { font-size: 8pt; color: var(--muted); margin-top: 2px; }
+  .modal-btn.green-btn { border-color: #a8d5b8; background: #f0faf4; }
+  .modal-btn.green-btn:hover { border-color: var(--green); background: #e0f5ea; }
+  .modal-btn.green-btn .btn-title { color: var(--green); }
+
+  /* Case log */
+  .case-log-item { border: var(--border); border-radius: 5px; padding: 10px 12px; margin-bottom: 8px; }
+  .case-log-item .cli-title { font-size: 9pt; font-weight: 600; color: var(--accent); }
+  .case-log-item .cli-meta { font-size: 7.5pt; color: var(--muted); font-family: 'DM Mono', monospace; margin-top: 2px; }
+  .case-log-item .cli-actions { display: flex; gap: 6px; margin-top: 6px; }
+  .cli-btn { font-size: 7pt; padding: 3px 8px; border-radius: 4px; border: 1px solid var(--rule); background: white; cursor: pointer; font-family: 'DM Mono', monospace; color: var(--muted); }
+  .cli-btn:hover { background: #f0ede8; }
+  .cli-btn.red { border-color: #f5c0bb; color: var(--red); }
+  .cli-btn.red:hover { background: #fdecea; }
+  .empty-log { text-align: center; padding: 24px; color: var(--muted); font-size: 9pt; font-family: 'DM Mono', monospace; }
+
+  /* ── PAGE ── */
+  .page { width: 8.5in; min-height: 11in; margin: 72px auto 24px; padding: 0.45in 0.45in 0.35in; background: var(--paper); position: relative; box-shadow: 0 4px 24px rgba(0,0,0,0.18); }
+  .page.with-banner { margin-top: 94px; }
+
+  /* ── HEADER ── */
+  .header { display: grid; grid-template-columns: auto 1fr auto; align-items: end; gap: 12px; border-bottom: 2.5px solid var(--accent); padding-bottom: 7px; margin-bottom: 10px; }
+  .header-title { font-size: 18pt; font-weight: 600; letter-spacing: -0.5px; color: var(--accent); line-height: 1; }
+  .header-sub { font-size: 7.5pt; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); font-family: 'DM Mono', monospace; margin-top: 2px; }
+  .header-fields { display: flex; gap: 16px; align-items: end; }
+  .field-group { display: flex; flex-direction: column; gap: 2px; }
+  .field-label { font-size: 6.5pt; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); font-family: 'DM Mono', monospace; }
+
+  /* ── EDITABLE FIELDS ── */
+  .ef { border: none; border-bottom: 1px solid var(--rule); background: transparent; font-family: 'DM Sans', sans-serif; font-size: 9pt; color: var(--ink); outline: none; width: 100%; padding: 1px 2px; min-height: 18px; transition: border-color 0.15s, background 0.15s; }
+  .ef:focus { border-color: var(--accent); background: rgba(26,58,92,0.04); }
+  textarea.ef { resize: none; width: 100%; border: none; border-bottom: 1px solid var(--rule); line-height: 22px; background-image: repeating-linear-gradient(to bottom, transparent, transparent 21px, var(--rule) 21px, var(--rule) 22px); background-size: 100% 22px; padding: 2px 2px; font-size: 9pt; font-family: 'DM Sans', sans-serif; color: var(--ink); }
+  textarea.ef:focus { outline: none; }
+
+  /* ── CASE BAR ── */
+  .case-bar { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; background: var(--accent); padding: 8px 12px; border-radius: 3px; margin-bottom: 10px; }
+  .case-bar .field-label { color: rgba(255,255,255,0.6); }
+  .case-bar .ef { color: white; border-color: rgba(255,255,255,0.35); }
+  .case-bar .ef:focus { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.7); }
+
+  /* ── MAIN GRID ── */
+  .main-grid { display: grid; grid-template-columns: 1.75in 1fr 1fr; gap: 9px; }
+  .body-col { display: flex; flex-direction: column; gap: 9px; }
+  .section { background: var(--box-bg); border: var(--border); border-radius: 3px; overflow: hidden; }
+  .section-head { background: var(--accent-light); border-bottom: var(--border); padding: 4px 9px; }
+  .section-head.red-head { background: #fdecea; }
+  .section-head.green-head { background: #e8f4ee; }
+  .section-head.gold-head { background: #fdf6e3; }
+  .section-title { font-size: 7pt; letter-spacing: 1.8px; text-transform: uppercase; font-weight: 600; color: var(--accent); font-family: 'DM Mono', monospace; }
+  .section-title.red { color: var(--red); }
+  .section-title.green { color: var(--green); }
+  .section-title.gold { color: #8a6a00; }
+  .section-body { padding: 7px 9px; }
+  .line-row { display: flex; align-items: center; border-bottom: 1px solid #e8e4dd; min-height: 22px; padding: 1px 0; gap: 5px; }
+  .line-row:last-child { border-bottom: none; }
+  .line-label { font-size: 7.5pt; color: var(--muted); white-space: nowrap; min-width: 60px; font-family: 'DM Mono', monospace; }
+
+  /* ── DIAGRAM ── */
+  .body-diagram-wrap { background: var(--box-bg); border: var(--border); border-radius: 3px; padding: 8px 6px 4px; display: flex; flex-direction: column; align-items: center; }
+  .diagram-top { display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 4px; padding: 0 2px; }
+  .diagram-title { font-size: 6.5pt; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); font-family: 'DM Mono', monospace; }
+  .dc-btn { font-size: 6.5pt; padding: 2px 5px; border: 1px solid var(--rule); border-radius: 3px; background: var(--paper); cursor: pointer; font-family: 'DM Mono', monospace; color: var(--muted); }
+  .dc-btn:hover { background: var(--accent-light); color: var(--accent); }
+  #bodyCanvas { display: block; width: 100%; cursor: crosshair; touch-action: none; border-radius: 2px; }
+  .port-legend { width: 100%; margin-top: 5px; border-top: 1px dashed var(--rule); padding-top: 5px; }
+  .port-legend-title { font-size: 6pt; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); font-family: 'DM Mono', monospace; margin-bottom: 3px; }
+  .port-rows { display: flex; flex-direction: column; gap: 2px; }
+  .port-row { display: flex; align-items: center; gap: 5px; border-bottom: 1px solid #eeece7; padding-bottom: 2px; }
+  .port-num { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--accent); display: flex; align-items: center; justify-content: center; font-size: 7pt; font-weight: 600; color: var(--accent); font-family: 'DM Mono', monospace; flex-shrink: 0; }
+
+  /* ── CHECKBOXES ── */
+  .check-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 10px; }
+  .check-item { display: flex; align-items: center; gap: 5px; font-size: 8pt; min-height: 18px; }
+  .check-item input[type="checkbox"] { width: 12px; height: 12px; accent-color: var(--accent); cursor: pointer; flex-shrink: 0; }
+
+  /* ── MED TABLE ── */
+  .med-grid { display: grid; grid-template-columns: 80px 1fr 55px 40px; gap: 4px; }
+  .med-col-head { font-size: 6.5pt; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); font-family: 'DM Mono', monospace; padding-bottom: 3px; border-bottom: 1px solid var(--rule); }
+  .med-cb { display: flex; align-items: center; justify-content: center; }
+  .med-cb input { width: 13px; height: 13px; accent-color: var(--green); cursor: pointer; }
+
+  /* ── ATTENDING TABLE ── */
+  .pref-table { width: 100%; border-collapse: collapse; font-size: 8pt; }
+  .pref-table td { border-bottom: 1px solid #e8e4dd; padding: 1px 4px; vertical-align: middle; height: 22px; }
+  .pref-table td:first-child { font-family: 'DM Mono', monospace; font-size: 7.5pt; color: var(--muted); white-space: nowrap; width: 90px; border-right: 1px solid #e8e4dd; }
+  .pref-table tr:last-child td { border-bottom: none; }
+
+  /* ── VITALS ── */
+  .vitals-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+  .vital-box { border: 1px solid var(--rule); border-radius: 2px; padding: 4px 6px; display: flex; flex-direction: column; gap: 2px; }
+  .vital-label { font-size: 6.5pt; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; font-family: 'DM Mono', monospace; }
+
+  /* ── SPECIMENS ── */
+  .spec-row { display: grid; grid-template-columns: 65px 1fr; gap: 4px; align-items: center; border-bottom: 1px solid #e8e4dd; min-height: 21px; padding: 1px 0; }
+  .spec-row:last-child { border-bottom: none; }
+  .spec-label { font-size: 7.5pt; color: var(--muted); font-family: 'DM Mono', monospace; }
+
+  /* ── FOOTER ── */
+  .footer { margin-top: 9px; border-top: 1px solid var(--rule); padding-top: 5px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; }
+  .footer-checks { display: flex; gap: 14px; flex-wrap: wrap; }
+  .footer-check { display: flex; align-items: center; gap: 4px; font-size: 8pt; }
+  .footer-check input { accent-color: var(--accent); width: 12px; height: 12px; cursor: pointer; }
+  .footer-note { font-size: 7pt; color: var(--muted); font-family: 'DM Mono', monospace; }
+
+  /* ── TOAST ── */
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); color: white; padding: 10px 20px; border-radius: 20px; font-family: 'DM Mono', monospace; font-size: 8.5pt; z-index: 999; opacity: 0; transition: opacity 0.3s; pointer-events: none; background: #1a3a5c; }
+  .toast.show { opacity: 1; }
+  .toast.success { background: #1d6a47; }
+  .toast.error { background: #c0392b; }
+
+  @media print {
+    .toolbar, .modal-overlay, .toast, .setup-banner { display: none !important; }
+    body { background: white; }
+    .page { margin: 0; padding: 0.35in 0.4in; box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- TOOLBAR -->
+<div class="toolbar">
+  <div class="toolbar-title">⬡ OR Sheet</div>
+  <div class="tool-sep"></div>
+  <span class="tb-label">Draw:</span>
+  <button class="tb-btn active" id="toolPen" onclick="setTool('pen')">✏️ Pen</button>
+  <button class="tb-btn" id="toolText" onclick="setTool('text')">T Label</button>
+  <button class="tb-btn" id="toolErase" onclick="setTool('erase')">⌫ Erase</button>
+  <div class="tool-sep"></div>
+  <div class="color-swatch active" style="background:#c0392b" id="swRed" onclick="setColor('#c0392b','swRed')"></div>
+  <div class="color-swatch" style="background:#1a3a5c" id="swBlue" onclick="setColor('#1a3a5c','swBlue')"></div>
+  <div class="color-swatch" style="background:#1d6a47" id="swGreen" onclick="setColor('#1d6a47','swGreen')"></div>
+  <div class="color-swatch" style="background:#222" id="swBlack" onclick="setColor('#222','swBlack')"></div>
+  <div class="tool-sep"></div>
+  <button class="size-btn active" id="sz1" onclick="setSize(2,'sz1')">·</button>
+  <button class="size-btn" id="sz2" onclick="setSize(4,'sz2')">●</button>
+  <button class="size-btn" id="sz3" onclick="setSize(7,'sz3')">⬤</button>
+  <div class="tool-sep"></div>
+  <button class="tb-btn" onclick="clearCanvas()">🗑 Clear</button>
+  <div class="tb-spacer"></div>
+  <span id="sheetsStatus" class="sheets-status">⚙ Not configured</span>
+  <div class="tool-sep"></div>
+  <button class="tb-btn sheets-btn" onclick="saveToSheets()">📊 Save to Sheets</button>
+  <button class="tb-btn" onclick="openExportModal()">📤 Other Export</button>
+  <button class="tb-btn" onclick="openConfigModal()">⚙ Setup</button>
+  <button class="tb-btn danger-btn" onclick="newCase()">＋ New Case</button>
+  <button class="tb-btn" onclick="window.print()">🖨 Print</button>
+</div>
+
+<!-- SETUP BANNER -->
+<div class="setup-banner" id="setupBanner">
+  ⚠ Google Sheets not configured yet — click <strong style="margin:0 4px">⚙ Setup</strong> in the toolbar to connect your spreadsheet and start saving cases.
+  <span class="setup-banner-close" onclick="document.getElementById('setupBanner').classList.add('hidden')">✕</span>
+</div>
+
+<!-- CONFIG MODAL -->
+<div class="modal-overlay" id="configModal">
+  <div class="modal">
+    <h2>⚙ Google Sheets Setup</h2>
+    <div class="modal-sub">ONE-TIME CONFIGURATION · TAKES ~10 MINUTES</div>
+
+    <p style="font-size:9pt;line-height:1.6;margin-bottom:14px;">Follow these steps once. After that, every "Save to Sheets" sends your case data directly to your Google Sheet — searchable and filterable from the Sheets app on your iPhone.</p>
+
+    <ol class="step-list">
+      <li>Go to <strong>sheets.google.com</strong> and create a new blank spreadsheet. Name it something like <em>OR Case Log</em>.</li>
+      <li>In that spreadsheet, click <strong>Extensions → Apps Script</strong>. A code editor will open.</li>
+      <li>Delete all existing code in the editor, then paste in the Apps Script code from the separate <strong>apps_script.gs</strong> file provided.</li>
+      <li>Click <strong>Save</strong> (disk icon), then click <strong>Deploy → New deployment</strong>.</li>
+      <li>Click the gear icon → choose <strong>Web app</strong>. Set "Execute as" = <em>Me</em>, "Who has access" = <em>Anyone</em>. Click <strong>Deploy</strong>.</li>
+      <li>Google will ask you to authorize — click <strong>Authorize access</strong>, sign in, and click <strong>Advanced → Go to OR Case Log (unsafe)</strong> if prompted.</li>
+      <li>Copy the <strong>Web app URL</strong> (looks like <code>https://script.google.com/macros/s/ABC.../exec</code>) and paste it below.</li>
+    </ol>
+
+    <hr class="divider">
+
+    <div class="config-field">
+      <label class="config-label">Apps Script Web App URL</label>
+      <input class="config-input" id="configUrl" type="text" placeholder="https://script.google.com/macros/s/YOUR_ID/exec">
+    </div>
+    <div class="config-field">
+      <label class="config-label">Your name / identifier (optional)</label>
+      <input class="config-input" id="configName" type="text" placeholder="e.g. Dr. Smith — shows in sheet">
+    </div>
+    <button class="config-save-btn" onclick="saveConfig()">Save Configuration</button>
+    <p class="config-note" style="margin-top:10px;">Your URL is saved locally in this browser. It never leaves your device except when sending case data to <em>your own</em> Google Sheet.</p>
+
+    <button class="modal-close" onclick="closeConfigModal()">Cancel</button>
+  </div>
+</div>
+
+<!-- EXPORT MODAL -->
+<div class="modal-overlay" id="exportModal">
+  <div class="modal">
+    <h2>📤 Other Export Options</h2>
+    <div class="modal-sub">ADDITIONAL WAYS TO SAVE THIS CASE</div>
+    <button class="modal-btn" onclick="downloadCSV()">
+      <div class="btn-title">📊 Download as CSV</div>
+      <div class="btn-desc">Save a spreadsheet-compatible file to your phone's Files app.</div>
+    </button>
+    <button class="modal-btn" onclick="downloadJSON()">
+      <div class="btn-title">📁 Download as JSON</div>
+      <div class="btn-desc">Full structured backup including diagram. Best for archiving.</div>
+    </button>
+    <button class="modal-btn" onclick="emailSummary()">
+      <div class="btn-title">✉️ Email summary</div>
+      <div class="btn-desc">Opens Mail app pre-filled with a complete text summary.</div>
+    </button>
+    <button class="modal-btn" onclick="copyToClipboard()">
+      <div class="btn-title">📋 Copy to clipboard</div>
+      <div class="btn-desc">Paste into Notes, Messages, or anywhere else.</div>
+    </button>
+    <button class="modal-btn" onclick="window.print(); closeExportModal()">
+      <div class="btn-title">🖨 Print / Save as PDF</div>
+      <div class="btn-desc">Use "Save as PDF" in the print dialog for a printable record.</div>
+    </button>
+    <button class="modal-close" onclick="closeExportModal()">Cancel</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- PAGE -->
+<div class="page" id="mainPage">
+  <div class="header">
+    <div>
+      <div class="header-title">OR Case Reference</div>
+      <div class="header-sub">Surgical Procedure Tracking Sheet</div>
+    </div>
+    <div></div>
+    <div class="header-fields">
+      <div class="field-group"><div class="field-label">Date</div><input class="ef" id="f_date" type="text" placeholder="__/__/__" style="width:110px"></div>
+      <div class="field-group"><div class="field-label">Room</div><input class="ef" id="f_room" type="text" placeholder="OR #" style="width:60px"></div>
+      <div class="field-group"><div class="field-label">Start Time</div><input class="ef" id="f_time" type="text" placeholder="00:00" style="width:110px"></div>
+    </div>
+  </div>
+
+  <div class="case-bar">
+    <div class="field-group"><div class="field-label">Patient MRN</div><input class="ef" id="f_mrn" type="text"></div>
+    <div class="field-group"><div class="field-label">Age / Sex</div><input class="ef" id="f_age" type="text"></div>
+    <div class="field-group"><div class="field-label">Attending</div><input class="ef" id="f_attending" type="text"></div>
+    <div class="field-group"><div class="field-label">Procedure</div><input class="ef" id="f_procedure" type="text"></div>
+    <div class="field-group"><div class="field-label">Anesthesia</div><input class="ef" id="f_anesthesia" type="text"></div>
+    <div class="field-group"><div class="field-label">ASA Class</div><input class="ef" id="f_asa" type="text"></div>
+  </div>
+
+  <div class="main-grid">
+    <div class="body-col">
+      <div class="body-diagram-wrap">
+        <div class="diagram-top">
+          <div class="diagram-title">Port / Incision Placement</div>
+          <button class="dc-btn" onclick="clearCanvas()">✕ Clear</button>
+        </div>
+        <canvas id="bodyCanvas" width="500" height="900"></canvas>
+        <div class="port-legend">
+          <div class="port-legend-title">Port Key</div>
+          <div class="port-rows">
+            <div class="port-row"><div class="port-num">1</div><input class="ef" id="f_port1" type="text" placeholder="location / size"></div>
+            <div class="port-row"><div class="port-num">2</div><input class="ef" id="f_port2" type="text" placeholder="location / size"></div>
+            <div class="port-row"><div class="port-num">3</div><input class="ef" id="f_port3" type="text" placeholder="location / size"></div>
+            <div class="port-row"><div class="port-num">4</div><input class="ef" id="f_port4" type="text" placeholder="location / size"></div>
+            <div class="port-row"><div class="port-num">5</div><input class="ef" id="f_port5" type="text" placeholder="location / size"></div>
+          </div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-head"><div class="section-title">Position &amp; Prep</div></div>
+        <div class="section-body">
+          <div class="line-row"><div class="line-label">Position</div><input class="ef" id="f_position" type="text"></div>
+          <div class="line-row"><div class="line-label">Prep</div><input class="ef" id="f_prep" type="text"></div>
+          <div class="line-row"><div class="line-label">Draping</div><input class="ef" id="f_draping" type="text"></div>
+          <div class="line-row"><div class="line-label">Foley</div><input class="ef" id="f_foley" type="text"></div>
+          <div class="line-row"><div class="line-label">NGT/OGT</div><input class="ef" id="f_ngt" type="text"></div>
+          <div class="line-row"><div class="line-label">Bovie Pad</div><input class="ef" id="f_bovie" type="text"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MIDDLE -->
+    <div style="display:flex;flex-direction:column;gap:9px;">
+      <div class="section">
+        <div class="section-head green-head"><div class="section-title green">Antibiotics &amp; Medications</div></div>
+        <div class="section-body">
+          <div class="med-grid" style="margin-bottom:3px;">
+            <div class="med-col-head">Drug</div><div class="med-col-head">Dose / Route</div><div class="med-col-head">Timing</div><div class="med-col-head" style="text-align:center">✓</div>
+          </div>
+          <div class="med-grid" style="row-gap:3px;">
+            <input class="ef" id="f_med1d" type="text"><input class="ef" id="f_med1r" type="text"><input class="ef" id="f_med1t" type="text"><div class="med-cb"><input type="checkbox" id="f_med1c"></div>
+            <input class="ef" id="f_med2d" type="text"><input class="ef" id="f_med2r" type="text"><input class="ef" id="f_med2t" type="text"><div class="med-cb"><input type="checkbox" id="f_med2c"></div>
+            <input class="ef" id="f_med3d" type="text"><input class="ef" id="f_med3r" type="text"><input class="ef" id="f_med3t" type="text"><div class="med-cb"><input type="checkbox" id="f_med3c"></div>
+            <input class="ef" id="f_med4d" type="text"><input class="ef" id="f_med4r" type="text"><input class="ef" id="f_med4t" type="text"><div class="med-cb"><input type="checkbox" id="f_med4c"></div>
+          </div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-head"><div class="section-title">VTE Prophylaxis</div></div>
+        <div class="section-body">
+          <div class="check-grid">
+            <label class="check-item"><input type="checkbox" id="f_scd"> SCDs</label>
+            <label class="check-item"><input type="checkbox" id="f_hep"> Heparin SQ</label>
+            <label class="check-item"><input type="checkbox" id="f_lmwh"> Lovenox</label>
+            <label class="check-item"><input type="checkbox" id="f_ted"> TED Hose</label>
+            <label class="check-item"><input type="checkbox" id="f_holdac"> Hold anti-coag</label>
+            <label class="check-item"><input type="checkbox" id="f_vteo"><input class="ef" id="f_vte_other" type="text" placeholder="other" style="width:70px"></label>
+          </div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-head"><div class="section-title">Instruments &amp; Equipment</div></div>
+        <div class="section-body">
+          <div class="check-grid" style="margin-bottom:5px;">
+            <label class="check-item"><input type="checkbox" id="f_lap"> Laparoscopic</label>
+            <label class="check-item"><input type="checkbox" id="f_rob"> Robotic</label>
+            <label class="check-item"><input type="checkbox" id="f_open"> Open</label>
+            <label class="check-item"><input type="checkbox" id="f_fluoro"> Fluoroscopy</label>
+            <label class="check-item"><input type="checkbox" id="f_harmonic"> Harmonic</label>
+            <label class="check-item"><input type="checkbox" id="f_ligasure"> LigaSure</label>
+            <label class="check-item"><input type="checkbox" id="f_stapler"> Stapler</label>
+            <label class="check-item"><input type="checkbox" id="f_endobag"> Endo bag</label>
+          </div>
+          <div class="line-row"><div class="line-label">Scope size</div><input class="ef" id="f_scope" type="text"></div>
+          <div class="line-row"><div class="line-label">Special req.</div><input class="ef" id="f_special" type="text"></div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-head red-head"><div class="section-title red">Allergies / Alerts</div></div>
+        <div class="section-body"><textarea class="ef" id="f_allergies" rows="3" placeholder="List allergies and alerts..."></textarea></div>
+      </div>
+      <div class="section">
+        <div class="section-head"><div class="section-title">Specimens &amp; Pathology</div></div>
+        <div class="section-body">
+          <div class="spec-row"><div class="spec-label">Specimen 1</div><input class="ef" id="f_spec1" type="text"></div>
+          <div class="spec-row"><div class="spec-label">Specimen 2</div><input class="ef" id="f_spec2" type="text"></div>
+          <div class="spec-row"><div class="spec-label">Frozen?</div><input class="ef" id="f_frozen" type="text"></div>
+          <div style="margin-top:4px;" class="check-grid">
+            <label class="check-item"><input type="checkbox" id="f_perm"> Permanent</label>
+            <label class="check-item"><input type="checkbox" id="f_culture"> Culture</label>
+            <label class="check-item"><input type="checkbox" id="f_cyto"> Cytology</label>
+            <label class="check-item"><input type="checkbox" id="f_frozensec"> Frozen section</label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT -->
+    <div style="display:flex;flex-direction:column;gap:9px;">
+      <div class="section">
+        <div class="section-head gold-head"><div class="section-title gold">Attending Preferences</div></div>
+        <div class="section-body" style="padding:5px 7px;">
+          <table class="pref-table">
+            <tr><td>Suture (fascia)</td><td><input class="ef" id="f_sut_fascia" type="text"></td></tr>
+            <tr><td>Suture (skin)</td><td><input class="ef" id="f_sut_skin" type="text"></td></tr>
+            <tr><td>Closure pref.</td><td><input class="ef" id="f_closure" type="text"></td></tr>
+            <tr><td>Drain type</td><td><input class="ef" id="f_drain" type="text"></td></tr>
+            <tr><td>Dressing</td><td><input class="ef" id="f_dressing" type="text"></td></tr>
+            <tr><td>Glue/staples</td><td><input class="ef" id="f_glue" type="text"></td></tr>
+            <tr><td>Music / setup</td><td><input class="ef" id="f_music" type="text"></td></tr>
+            <tr><td>Other</td><td><input class="ef" id="f_pref_other" type="text"></td></tr>
+          </table>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-head"><div class="section-title">Post-op Orders</div></div>
+        <div class="section-body">
+          <div class="line-row"><div class="line-label">Diet</div><input class="ef" id="f_diet" type="text"></div>
+          <div class="line-row"><div class="line-label">Activity</div><input class="ef" id="f_activity" type="text"></div>
+          <div class="line-row"><div class="line-label">IVF</div><input class="ef" id="f_ivf" type="text"></div>
+          <div class="line-row"><div class="line-label">Pain mgmt</div><input class="ef" id="f_pain" type="text"></div>
+          <div class="line-row"><div class="line-label">Nausea</div><input class="ef" id="f_nausea" type="text"></div>
+          <div class="line-row"><div class="line-label">Disposition</div><input class="ef" id="f_dispo" type="text"></div>
+          <div style="margin-top:5px;" class="check-grid">
+            <label class="check-item"><input type="checkbox" id="f_admit"> Admit</label>
+            <label class="check-item"><input type="checkbox" id="f_obs"> Obs</label>
+            <label class="check-item"><input type="checkbox" id="f_dc"> Discharge</label>
+            <label class="check-item"><input type="checkbox" id="f_icu"> ICU</label>
+          </div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-head"><div class="section-title">Operative Data</div></div>
+        <div class="section-body">
+          <div class="vitals-grid" style="margin-bottom:6px;">
+            <div class="vital-box"><div class="vital-label">Cut Time</div><input class="ef" id="f_cut" type="text"></div>
+            <div class="vital-box"><div class="vital-label">Close Time</div><input class="ef" id="f_close" type="text"></div>
+            <div class="vital-box"><div class="vital-label">Total Time</div><input class="ef" id="f_total" type="text"></div>
+            <div class="vital-box"><div class="vital-label">EBL (mL)</div><input class="ef" id="f_ebl" type="text"></div>
+            <div class="vital-box"><div class="vital-label">UOP (mL)</div><input class="ef" id="f_uop" type="text"></div>
+            <div class="vital-box"><div class="vital-label">Fluids In</div><input class="ef" id="f_fluids" type="text"></div>
+          </div>
+          <div class="line-row"><div class="line-label">Transfusion</div><input class="ef" id="f_transfusion" type="text"></div>
+          <div class="line-row"><div class="line-label">Cell saver</div><input class="ef" id="f_cellsaver" type="text"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOTTOM FULL -->
+    <div style="grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:9px;">
+      <div class="section">
+        <div class="section-head"><div class="section-title">Miscellaneous Notes</div></div>
+        <div class="section-body"><textarea class="ef" id="f_misc" rows="5" placeholder="Free text notes..."></textarea></div>
+      </div>
+      <div class="section">
+        <div class="section-head red-head"><div class="section-title red">Intraop Events / Complications</div></div>
+        <div class="section-body"><textarea class="ef" id="f_intraop" rows="5" placeholder="Document any intraoperative events..."></textarea></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="footer-checks">
+      <label class="footer-check"><input type="checkbox" id="f_timeout"> Time-out completed</label>
+      <label class="footer-check"><input type="checkbox" id="f_counts"> Counts correct</label>
+      <label class="footer-check"><input type="checkbox" id="f_opnote"> Op note dictated</label>
+      <label class="footer-check"><input type="checkbox" id="f_family"> Family updated</label>
+      <label class="footer-check"><input type="checkbox" id="f_fellow"> Fellow/Res notified</label>
+    </div>
+    <div class="footer-note">or-case-sheet · v4.0 · Google Sheets Edition</div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+// CONFIG
+// ══════════════════════════════════════════
+let SCRIPT_URL = localStorage.getItem('orSheetScriptUrl') || '';
+let USER_NAME  = localStorage.getItem('orSheetUserName') || '';
+
+function updateStatusIndicator() {
+  const el = document.getElementById('sheetsStatus');
+  const banner = document.getElementById('setupBanner');
+  if (SCRIPT_URL) {
+    el.textContent = '✓ Sheets connected';
+    el.className = 'sheets-status ok';
+    banner.classList.add('hidden');
+    document.getElementById('mainPage').classList.remove('with-banner');
+  } else {
+    el.textContent = '⚙ Not configured';
+    el.className = 'sheets-status';
+    document.getElementById('mainPage').classList.add('with-banner');
+  }
+}
+
+function saveConfig() {
+  const url = document.getElementById('configUrl').value.trim();
+  const name = document.getElementById('configName').value.trim();
+  if (!url || !url.includes('script.google.com')) {
+    showToast('Please enter a valid Apps Script URL', 'error'); return;
+  }
+  SCRIPT_URL = url; USER_NAME = name;
+  localStorage.setItem('orSheetScriptUrl', url);
+  localStorage.setItem('orSheetUserName', name);
+  updateStatusIndicator();
+  closeConfigModal();
+  showToast('✓ Configuration saved!', 'success');
+}
+
+function openConfigModal() {
+  document.getElementById('configUrl').value = SCRIPT_URL;
+  document.getElementById('configName').value = USER_NAME;
+  document.getElementById('configModal').classList.add('open');
+}
+function closeConfigModal() { document.getElementById('configModal').classList.remove('open'); }
+
+// ══════════════════════════════════════════
+// CANVAS
+// ══════════════════════════════════════════
+const canvas = document.getElementById('bodyCanvas');
+const ctx = canvas.getContext('2d');
+let currentTool='pen', currentColor='#c0392b', currentSize=2;
+let isDrawing=false, lastX=0, lastY=0;
+
+function drawBodyOutline() {
+  const W=canvas.width, H=canvas.height, sx=W/130, sy=H/290;
+  ctx.save(); ctx.scale(sx,sy);
+  ctx.strokeStyle='#1a3a5c'; ctx.lineWidth=1.4/Math.min(sx,sy); ctx.fillStyle='#f0eee9'; ctx.lineCap='round'; ctx.lineJoin='round';
+  ctx.beginPath(); ctx.ellipse(65,22,18,21,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.roundRect(58,41,14,10,2); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(38,51); ctx.bezierCurveTo(28,55,26,70,24,115); ctx.quadraticCurveTo(24,122,30,122); ctx.lineTo(100,122); ctx.quadraticCurveTo(106,122,106,115); ctx.bezierCurveTo(104,70,102,55,92,51); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(58,51); ctx.quadraticCurveTo(48,48,38,51); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(72,51); ctx.quadraticCurveTo(82,48,92,51); ctx.stroke();
+  ctx.save(); ctx.setLineDash([3,2]); ctx.strokeStyle='#8a9ab0'; ctx.lineWidth=0.8/Math.min(sx,sy);
+  ctx.beginPath(); ctx.moveTo(65,51); ctx.lineTo(65,135); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(30,95); ctx.quadraticCurveTo(48,105,65,102); ctx.quadraticCurveTo(82,105,100,95); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(30,135); ctx.quadraticCurveTo(47,145,65,144); ctx.quadraticCurveTo(83,145,100,135); ctx.stroke();
+  ctx.restore();
+  ctx.beginPath(); ctx.arc(65,108,2.5,0,Math.PI*2); ctx.strokeStyle='#1a3a5c'; ctx.lineWidth=1/Math.min(sx,sy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(38,51); ctx.bezierCurveTo(22,56,18,80,20,100); ctx.lineTo(28,98); ctx.bezierCurveTo(26,88,28,74,38,58); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(92,51); ctx.bezierCurveTo(108,56,112,80,110,100); ctx.lineTo(102,98); ctx.bezierCurveTo(104,88,102,74,92,58); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(20,100); ctx.bezierCurveTo(14,115,15,128,15,128); ctx.lineTo(23,126); ctx.bezierCurveTo(22,115,28,98,28,98); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(110,100); ctx.bezierCurveTo(116,115,115,128,115,128); ctx.lineTo(107,126); ctx.bezierCurveTo(108,115,102,98,102,98); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(24,115); ctx.bezierCurveTo(24,130,30,135,38,138); ctx.bezierCurveTo(52,142,65,142,65,142); ctx.bezierCurveTo(78,142,92,138,100,135); ctx.bezierCurveTo(106,130,106,115,106,115); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(38,138); ctx.bezierCurveTo(34,160,34,180,36,215); ctx.lineTo(50,215); ctx.bezierCurveTo(50,200,48,160,50,142); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(92,138); ctx.bezierCurveTo(96,160,96,180,94,215); ctx.lineTo(80,215); ctx.bezierCurveTo(80,200,82,160,80,142); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(36,215); ctx.bezierCurveTo(34,235,36,252,40,260); ctx.lineTo(48,260); ctx.bezierCurveTo(50,258,52,235,50,215); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(94,215); ctx.bezierCurveTo(96,235,94,252,90,260); ctx.lineTo(82,260); ctx.bezierCurveTo(80,258,78,235,80,215); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(37,260); ctx.bezierCurveTo(33,265,32,270,36,273); ctx.lineTo(50,273); ctx.bezierCurveTo(54,273,52,268,50,260); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(93,260); ctx.bezierCurveTo(97,265,98,270,94,273); ctx.lineTo(80,273); ctx.bezierCurveTo(76,273,78,268,80,260); ctx.stroke();
+  ctx.font=`${6/Math.min(sx,sy)}px DM Mono,monospace`; ctx.fillStyle='#8a9ab0'; ctx.textAlign='center'; ctx.fillText('ANTERIOR',65,14);
+  ctx.restore();
+}
+function initCanvas() { ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,canvas.width,canvas.height); drawBodyOutline(); }
+initCanvas();
+
+function getPos(e) {
+  const rect=canvas.getBoundingClientRect(), scaleX=canvas.width/rect.width, scaleY=canvas.height/rect.height;
+  const cx=e.touches?e.touches[0].clientX:e.clientX, cy=e.touches?e.touches[0].clientY:e.clientY;
+  return {x:(cx-rect.left)*scaleX, y:(cy-rect.top)*scaleY};
+}
+canvas.addEventListener('mousedown',startDraw); canvas.addEventListener('mousemove',draw); canvas.addEventListener('mouseup',stopDraw); canvas.addEventListener('mouseleave',stopDraw);
+canvas.addEventListener('touchstart',e=>{e.preventDefault();startDraw(e);},{passive:false});
+canvas.addEventListener('touchmove',e=>{e.preventDefault();draw(e);},{passive:false});
+canvas.addEventListener('touchend',stopDraw);
+
+function startDraw(e) {
+  if (currentTool==='text') { const pos=getPos(e); const t=prompt('Enter label:'); if(t){ctx.font='bold 14px DM Sans,sans-serif';ctx.fillStyle=currentColor;ctx.fillText(t,pos.x,pos.y);} return; }
+  isDrawing=true; const pos=getPos(e); lastX=pos.x; lastY=pos.y;
+  ctx.beginPath();
+  if(currentTool==='erase'){ctx.arc(pos.x,pos.y,currentSize*4,0,Math.PI*2);ctx.fillStyle='#ffffff';ctx.fill();}
+  else{ctx.arc(pos.x,pos.y,currentSize/2,0,Math.PI*2);ctx.fillStyle=currentColor;ctx.fill();}
+}
+function draw(e) {
+  if(!isDrawing||currentTool==='text') return;
+  const pos=getPos(e);
+  ctx.beginPath(); ctx.lineWidth=currentTool==='erase'?currentSize*5:currentSize; ctx.lineCap='round'; ctx.lineJoin='round';
+  ctx.globalCompositeOperation=currentTool==='erase'?'destination-out':'source-over';
+  ctx.strokeStyle=currentTool==='erase'?'rgba(0,0,0,1)':currentColor;
+  ctx.moveTo(lastX,lastY); ctx.lineTo(pos.x,pos.y); ctx.stroke();
+  lastX=pos.x; lastY=pos.y;
+}
+function stopDraw() { isDrawing=false; ctx.globalCompositeOperation='source-over'; }
+function setTool(t) { currentTool=t; ['Pen','Text','Erase'].forEach(n=>document.getElementById('tool'+n).classList.remove('active')); document.getElementById('tool'+t.charAt(0).toUpperCase()+t.slice(1)).classList.add('active'); canvas.style.cursor=t==='erase'?'cell':t==='text'?'text':'crosshair'; }
+function setColor(c,id) { currentColor=c; document.querySelectorAll('.color-swatch').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+function setSize(s,id) { currentSize=s; document.querySelectorAll('.size-btn').forEach(b=>b.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+function clearCanvas() { ctx.globalCompositeOperation='source-over'; ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,canvas.width,canvas.height); drawBodyOutline(); }
+
+// ══════════════════════════════════════════
+// DATA COLLECTION
+// ══════════════════════════════════════════
+function g(id) { const el=document.getElementById(id); if(!el) return ''; return el.type==='checkbox'?el.checked:el.value; }
+
+function collectData() {
+  return {
+    timestamp: new Date().toISOString(),
+    user: USER_NAME,
+    date: g('f_date'), room: g('f_room'), start_time: g('f_time'),
+    mrn: g('f_mrn'), age_sex: g('f_age'), attending: g('f_attending'),
+    procedure: g('f_procedure'), anesthesia: g('f_anesthesia'), asa: g('f_asa'),
+    port1: g('f_port1'), port2: g('f_port2'), port3: g('f_port3'), port4: g('f_port4'), port5: g('f_port5'),
+    position: g('f_position'), prep: g('f_prep'), draping: g('f_draping'), foley: g('f_foley'), ngt: g('f_ngt'), bovie: g('f_bovie'),
+    med1: [g('f_med1d'),g('f_med1r'),g('f_med1t'),g('f_med1c')].filter(Boolean).join(' | '),
+    med2: [g('f_med2d'),g('f_med2r'),g('f_med2t'),g('f_med2c')].filter(Boolean).join(' | '),
+    med3: [g('f_med3d'),g('f_med3r'),g('f_med3t'),g('f_med3c')].filter(Boolean).join(' | '),
+    med4: [g('f_med4d'),g('f_med4r'),g('f_med4t'),g('f_med4c')].filter(Boolean).join(' | '),
+    vte: [g('f_scd')&&'SCDs', g('f_hep')&&'Heparin', g('f_lmwh')&&'Lovenox', g('f_ted')&&'TED Hose', g('f_holdac')&&'Hold AC', g('f_vte_other')].filter(Boolean).join(', '),
+    instruments: [g('f_lap')&&'Lap', g('f_rob')&&'Robotic', g('f_open')&&'Open', g('f_fluoro')&&'Fluoro', g('f_harmonic')&&'Harmonic', g('f_ligasure')&&'LigaSure', g('f_stapler')&&'Stapler', g('f_endobag')&&'Endo Bag'].filter(Boolean).join(', '),
+    scope: g('f_scope'), special: g('f_special'),
+    allergies: g('f_allergies'),
+    specimen1: g('f_spec1'), specimen2: g('f_spec2'), frozen: g('f_frozen'),
+    path_types: [g('f_perm')&&'Permanent', g('f_culture')&&'Culture', g('f_cyto')&&'Cytology', g('f_frozensec')&&'Frozen'].filter(Boolean).join(', '),
+    sut_fascia: g('f_sut_fascia'), sut_skin: g('f_sut_skin'), closure: g('f_closure'),
+    drain: g('f_drain'), dressing: g('f_dressing'), glue: g('f_glue'), music: g('f_music'), pref_other: g('f_pref_other'),
+    diet: g('f_diet'), activity: g('f_activity'), ivf: g('f_ivf'), pain: g('f_pain'), nausea: g('f_nausea'), dispo: g('f_dispo'),
+    disposition: [g('f_admit')&&'Admit', g('f_obs')&&'Obs', g('f_dc')&&'Discharge', g('f_icu')&&'ICU'].filter(Boolean).join(', '),
+    cut_time: g('f_cut'), close_time: g('f_close'), total_time: g('f_total'),
+    ebl: g('f_ebl'), uop: g('f_uop'), fluids: g('f_fluids'), transfusion: g('f_transfusion'), cell_saver: g('f_cellsaver'),
+    misc_notes: g('f_misc'), intraop_events: g('f_intraop'),
+    checklist: [g('f_timeout')&&'Timeout', g('f_counts')&&'Counts', g('f_opnote')&&'Op Note', g('f_family')&&'Family', g('f_fellow')&&'Fellow'].filter(Boolean).join(', ')
+  };
+}
+
+// ══════════════════════════════════════════
+// SAVE TO GOOGLE SHEETS
+// ══════════════════════════════════════════
+async function saveToSheets() {
+  if (!SCRIPT_URL) {
+    openConfigModal();
+    showToast('Please configure your Google Sheets URL first', 'error');
+    return;
+  }
+  const btn = document.querySelector('.tb-btn.sheets-btn');
+  btn.textContent = '⏳ Saving...';
+  btn.style.opacity = '0.7';
+
+  const data = collectData();
+
+  try {
+    await fetch(SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    // no-cors means we can't read the response, but if no error thrown it succeeded
+    showToast('✓ Case saved to Google Sheets!', 'success');
+  } catch (err) {
+    showToast('⚠ Save failed — check your URL in ⚙ Setup', 'error');
+  } finally {
+    btn.textContent = '📊 Save to Sheets';
+    btn.style.opacity = '1';
+  }
+}
+
+// ══════════════════════════════════════════
+// OTHER EXPORTS
+// ══════════════════════════════════════════
+function buildTextSummary(d) {
+  return `OR CASE SUMMARY
+═══════════════════════════════
+Date: ${d.date||'—'}  Room: ${d.room||'—'}  Start: ${d.start_time||'—'}
+MRN: ${d.mrn||'—'}  Age/Sex: ${d.age_sex||'—'}  Attending: ${d.attending||'—'}
+Procedure: ${d.procedure||'—'}
+Anesthesia: ${d.anesthesia||'—'}  ASA: ${d.asa||'—'}
+
+POSITION & PREP
+Position: ${d.position||'—'}  Prep: ${d.prep||'—'}
+Foley: ${d.foley||'—'}  Bovie: ${d.bovie||'—'}
+
+PORTS: 1:${d.port1||'—'} 2:${d.port2||'—'} 3:${d.port3||'—'} 4:${d.port4||'—'} 5:${d.port5||'—'}
+
+MEDS: ${[d.med1,d.med2,d.med3,d.med4].filter(Boolean).join(' | ')||'None'}
+VTE: ${d.vte||'—'}
+INSTRUMENTS: ${d.instruments||'—'}
+
+ALLERGIES: ${d.allergies||'None'}
+
+ATTENDING PREFS
+Fascia: ${d.sut_fascia||'—'}  Skin: ${d.sut_skin||'—'}
+Drain: ${d.drain||'—'}  Dressing: ${d.dressing||'—'}
+
+POST-OP: Diet:${d.diet||'—'} Activity:${d.activity||'—'} IVF:${d.ivf||'—'}
+Pain:${d.pain||'—'}  Dispo:${d.disposition||d.dispo||'—'}
+
+OPERATIVE DATA
+EBL:${d.ebl||'—'}mL  UOP:${d.uop||'—'}mL  Fluids:${d.fluids||'—'}
+Cut:${d.cut_time||'—'}  Close:${d.close_time||'—'}  Total:${d.total_time||'—'}
+
+SPECIMENS: ${d.specimen1||'—'} / ${d.specimen2||'—'}
+INTRAOP EVENTS: ${d.intraop_events||'None'}
+MISC NOTES: ${d.misc_notes||'None'}
+CHECKLIST: ${d.checklist||'—'}`;
+}
+
+function downloadBlob(content, filename, type) {
+  const blob=new Blob([content],{type}), url=URL.createObjectURL(blob), a=document.createElement('a');
+  a.href=url; a.download=filename; document.body.appendChild(a); a.click();
+  setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},1000);
+}
+
+function downloadCSV() {
+  const d=collectData();
+  const keys=Object.keys(d), vals=Object.values(d);
+  const esc=v=>`"${String(v||'').replace(/"/g,'""')}"`;
+  downloadBlob([keys.map(esc).join(','),vals.map(esc).join(',')].join('\n'), `OR_${d.procedure||'case'}_${d.date||Date.now()}.csv`.replace(/[^a-zA-Z0-9_\-.]/g,'_'), 'text/csv');
+  showToast('⬇ CSV downloaded'); closeExportModal();
+}
+function downloadJSON() {
+  const d=collectData();
+  downloadBlob(JSON.stringify(d,null,2), `OR_${d.procedure||'case'}_${d.date||Date.now()}.json`.replace(/[^a-zA-Z0-9_\-.]/g,'_'), 'application/json');
+  showToast('⬇ JSON downloaded'); closeExportModal();
+}
+function emailSummary() {
+  const d=collectData();
+  window.location.href=`mailto:?subject=${encodeURIComponent('OR Case: '+d.procedure+' — '+d.date)}&body=${encodeURIComponent(buildTextSummary(d))}`;
+  closeExportModal();
+}
+function copyToClipboard() {
+  const t=buildTextSummary(collectData());
+  navigator.clipboard.writeText(t).then(()=>{showToast('📋 Copied');closeExportModal();}).catch(()=>{const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();showToast('📋 Copied');closeExportModal();});
+}
+
+function newCase() {
+  if(!confirm('Start a new case? Current data will be cleared.')) return;
+  document.querySelectorAll('.ef').forEach(el=>{if(el.type==='checkbox'){el.checked=false;}else{el.value='';}});
+  document.querySelectorAll('input[type="checkbox"]').forEach(el=>el.checked=false);
+  clearCanvas(); showToast('✓ New case started');
+}
+
+function openExportModal() { document.getElementById('exportModal').classList.add('open'); }
+function closeExportModal() { document.getElementById('exportModal').classList.remove('open'); }
+document.getElementById('exportModal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeExportModal();});
+document.getElementById('configModal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeConfigModal();});
+
+let toastTimer;
+function showToast(msg, type='') {
+  const t=document.getElementById('toast'); t.textContent=msg; t.className='toast show'+(type?' '+type:'');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.className='toast',2800);
+}
+
+// Init
+updateStatusIndicator();
+</script>
+</body>
+</html>
