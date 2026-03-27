@@ -1720,6 +1720,54 @@ function exportCanvasForPDF(canvas) {
   return canvas.toDataURL('image/png');
 }
 
+// ── Detect whether the user has drawn anything on the diagram canvas ──
+function hasDiagramDrawing() {
+  try {
+    var c = bc;
+    var ctx2 = c.getContext('2d');
+    var w = c.width, h = c.height;
+    var stepX = Math.floor(w / 10);
+    var stepY = Math.floor(h / 8);
+    for (var y = stepY; y < h; y += stepY) {
+      for (var x = stepX; x < w; x += stepX) {
+        var px = ctx2.getImageData(x, y, 1, 1).data;
+        var r = px[0], g = px[1], b = px[2];
+        if (r > 220 && g > 220 && b > 220) continue;       // near-white background
+        if (r > 180 && g > 140 && b > 120 && r > g && g > b) continue; // skin-tone anatomy
+        if (r < 60  && g < 60  && b < 60)  continue;       // dark anatomy outlines
+        if (Math.abs(r-g) < 25 && Math.abs(g-b) < 25 && r > 150) continue; // grey/beige bg
+        return true; // anything else is a user drawing
+      }
+    }
+    return false;
+  } catch(e) {
+    return true;
+  }
+}
+
+// ── Detect whether anything has been drawn on the blank canvas ──
+function hasBlankDrawing() {
+  try {
+    if (!blankCanvas || !blankCtx) return false;
+    var w = blankCanvas.width, h = blankCanvas.height;
+    if (!w || !h) return false;
+    var stepX = Math.floor(w / 10);
+    var stepY = Math.floor(h / 8);
+    if (!stepX || !stepY) return false;
+    for (var y = stepY; y < h; y += stepY) {
+      for (var x = stepX; x < w; x += stepX) {
+        var px = blankCtx.getImageData(x, y, 1, 1).data;
+        var r = px[0], g = px[1], b = px[2];
+        if (r > 220 && g > 220 && b > 220) continue; // near-white background
+        return true; // any non-white pixel = drawing present
+      }
+    }
+    return false;
+  } catch(e) {
+    return true;
+  }
+}
+
 
 
 function submitViaForm(url, fields) {
@@ -1919,3 +1967,5 @@ function toast(msg,type=''){
 </script>
 </body>
 </html>
+
+
