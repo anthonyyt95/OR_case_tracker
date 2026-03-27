@@ -267,6 +267,13 @@ body { background: var(--bg); font-family: var(--sans); color: var(--ink); font-
 .canvas-header { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--rule); background: var(--surface2); }
 .active-diag-name { font-family: var(--mono); font-size: 11px; color: var(--accent); font-weight: 600; }
 .canvas-tools { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 8px 12px; background: var(--surface2); border-bottom: 1px solid var(--rule); }
+.draw-sticky-toolbar {
+  position: sticky;
+  top: calc(var(--header-h) + var(--nav-h));
+  z-index: 80;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--rule);
+}
 .ct-group { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
 .ct-sep { width: 1px; height: 20px; background: var(--rule); margin: 0 4px; }
 .tool-btn { font-family: var(--mono); font-size: 11px; padding: 5px 9px; border-radius: 6px; border: 1px solid var(--rule); background: white; color: var(--ink2); cursor: pointer; transition: all 0.12s; white-space: nowrap; }
@@ -370,6 +377,7 @@ body { background: var(--bg); font-family: var(--sans); color: var(--ink); font-
   <div class="app-title">⬡ OR Sheet <span>v7</span></div>
   <div class="header-actions">
     <div class="status-dot" id="statusDot"></div>
+    <button class="hbtn hbtn-ghost" id="sheetLinkBtn" onclick="openSheet()" style="display:none;" title="Open Google Sheet">📋</button>
     <button class="hbtn hbtn-ghost" onclick="openSetup()">⚙</button>
     <button class="hbtn hbtn-save" onclick="saveToSheets()">📊 Save</button>
   </div>
@@ -407,6 +415,8 @@ body { background: var(--bg); font-family: var(--sans); color: var(--ink); font-
     <input class="form-input" id="cfgUrl" type="url" placeholder="https://script.google.com/macros/s/.../exec">
     <label class="form-label">Your name (optional)</label>
     <input class="form-input" id="cfgName" type="text" placeholder="Dr. Smith">
+    <label class="form-label">Google Sheet URL (optional — enables 📋 link)</label>
+    <input class="form-input" id="cfgSheetUrl" type="url" placeholder="https://docs.google.com/spreadsheets/d/...">
     <button class="form-btn" onclick="saveConfig()">Save Configuration</button>
     <button class="form-cancel" onclick="closeSetup()">Cancel</button>
     <div style="margin-top:20px;border-top:1px solid var(--rule);padding-top:16px;">
@@ -541,6 +551,7 @@ body { background: var(--bg); font-family: var(--sans); color: var(--ink); font-
 
   <!-- Draw tab -->
   <div class="dtab-pane" id="dp-draw">
+    <div class="draw-sticky-toolbar">
     <div class="canvas-header">
       <span class="active-diag-name" id="activeDiagName">Anterior</span>
       <button class="clear-btn" onclick="clearCanvas()">✕ Clear drawing</button>
@@ -571,11 +582,13 @@ body { background: var(--bg); font-family: var(--sans); color: var(--ink); font-
         <button class="sz-btn" id="sz3" onclick="setSize(8,'sz3')">⬤</button>
       </div>
     </div>
+    </div><!-- end draw-sticky-toolbar -->
     <canvas id="bodyCanvas" width="600" height="1830"></canvas>
   </div>
 
   <!-- Blank draw tab -->
   <div class="dtab-pane" id="dp-blank">
+    <div class="draw-sticky-toolbar">
     <div class="canvas-header">
       <span class="active-diag-name">Blank Canvas</span>
       <button class="clear-btn" onclick="clearBlankCanvas()">✕ Clear</button>
@@ -606,6 +619,7 @@ body { background: var(--bg); font-family: var(--sans); color: var(--ink); font-
         <button class="sz-btn" id="bsz3" onclick="setBlankSize(8,'bsz3')">⬤</button>
       </div>
     </div>
+    </div><!-- end draw-sticky-toolbar -->
     <canvas id="blankCanvas" style="display:block;width:100%;background:white;cursor:crosshair;touch-action:none;"></canvas>
   </div>
 
@@ -823,31 +837,46 @@ function navScrollTo(id){
 // Replace the empty string with your deployed Web App URL so you never have
 // to enter it manually. The URL looks like:
 //   https://script.google.com/macros/s/AKfycb.../exec
-const EMBEDDED_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyy_Ca6cOLSdVjkjifJyro9B6GnNf2oAxIrgtqWO8Q0pfqH_iBgOK5DSUWYOQOmi0cc/exec';   // ← paste between these quotes
-const EMBEDDED_USER_NAME  = '';   // ← optionally set your name here too
+const EMBEDDED_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyy_Ca6cOLSdVjkjifJyro9B6GnNf2oAxIrgtqWO8Q0pfqH_iBgOK5DSUWYOQOmi0cc/exec';   // ← paste your Apps Script /exec URL here
+const EMBEDDED_USER_NAME  = '';   // ← optionally set your name here
+const EMBEDDED_SHEET_URL  = '';   // ← paste your Google Sheet URL here (docs.google.com/spreadsheets/d/...)
 // ───────────────────────────────────────────────────────────────────────────
 
-let SCRIPT_URL='', USER_NAME='';
+let SCRIPT_URL='', USER_NAME='', SHEET_URL='';
 function loadConfig(){
-  // Embedded URL takes priority; falls back to localStorage for manual entry
   SCRIPT_URL = EMBEDDED_SCRIPT_URL || localStorage.getItem('orUrl') || '';
   USER_NAME  = EMBEDDED_USER_NAME  || localStorage.getItem('orUser') || '';
+  SHEET_URL  = EMBEDDED_SHEET_URL  || localStorage.getItem('orSheetUrl') || '';
   const dot=document.getElementById('statusDot');
   dot.classList.toggle('ok',!!SCRIPT_URL);
-  // If embedded, hide the setup button clutter since it's already configured
   if(EMBEDDED_SCRIPT_URL){
     document.getElementById('statusDot').title='Sheets connected (embedded)';
   }
+  // Show/hide sheet link button
+  var sheetBtn = document.getElementById('sheetLinkBtn');
+  if(sheetBtn) sheetBtn.style.display = SHEET_URL ? 'inline-block' : 'none';
 }
 function saveConfig(){
   const u=document.getElementById('cfgUrl').value.trim();
   if(!u||!u.includes('script.google.com')){toast('Enter a valid Apps Script URL','err');return;}
   SCRIPT_URL=u; USER_NAME=document.getElementById('cfgName').value.trim();
+  var su=document.getElementById('cfgSheetUrl').value.trim();
+  SHEET_URL=su;
   localStorage.setItem('orUrl',SCRIPT_URL); localStorage.setItem('orUser',USER_NAME);
+  if(su) localStorage.setItem('orSheetUrl',su);
   loadConfig(); closeSetup(); toast('✓ Saved','ok');
 }
-function openSetup(){document.getElementById('cfgUrl').value=SCRIPT_URL;document.getElementById('cfgName').value=USER_NAME;document.getElementById('setupModal').classList.add('open');}
+function openSetup(){
+  document.getElementById('cfgUrl').value=SCRIPT_URL;
+  document.getElementById('cfgName').value=USER_NAME;
+  var su=document.getElementById('cfgSheetUrl'); if(su) su.value=SHEET_URL;
+  document.getElementById('setupModal').classList.add('open');
+}
 function closeSetup(){document.getElementById('setupModal').classList.remove('open');}
+function openSheet(){
+  if(SHEET_URL) window.open(SHEET_URL,'_blank');
+  else { openSetup(); toast('Add your Sheet URL in Setup','err'); }
+}
 
 // ══════════════════════════════════════════
 // DIAGRAM TABS
