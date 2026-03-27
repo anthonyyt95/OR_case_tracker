@@ -2,787 +2,1382 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>OR Case Reference Sheet</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>OR Case Sheet</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
-
-  :root {
-    --ink: #0f1117;
-    --paper: #f8f6f1;
-    --rule: #c8c2b6;
-    --accent: #1a3a5c;
-    --accent-light: #e8eef4;
-    --red: #c0392b;
-    --green: #1d6a47;
-    --muted: #7a7468;
-    --box-bg: #ffffff;
-    --border: 1px solid var(--rule);
-  }
-
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #e8e4dc; font-family: 'DM Sans', sans-serif; font-size: 10.5pt; color: var(--ink); }
-
-  /* ── TOOLBAR ── */
-  .toolbar {
-    position: fixed; top: 0; left: 0; right: 0;
-    background: var(--accent); color: white;
-    display: flex; align-items: center; gap: 8px;
-    padding: 7px 14px; z-index: 100;
-    font-family: 'DM Mono', monospace; font-size: 8pt; flex-wrap: wrap;
-  }
-  .toolbar-title { font-size: 9pt; font-weight: 600; letter-spacing: 1px; margin-right: 6px; }
-  .tool-sep { width: 1px; height: 22px; background: rgba(255,255,255,0.2); margin: 0 2px; }
-  .tb-btn {
-    background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
-    border-radius: 4px; color: white; padding: 4px 9px; cursor: pointer;
-    font-family: 'DM Mono', monospace; font-size: 8pt; transition: background 0.15s; white-space: nowrap;
-  }
-  .tb-btn:hover { background: rgba(255,255,255,0.25); }
-  .tb-btn.active { background: rgba(255,255,255,0.3); border-color: rgba(255,255,255,0.6); }
-  .tb-btn.sheets-btn { background: rgba(29,106,71,0.6); border-color: rgba(100,220,150,0.5); font-weight: 600; }
-  .tb-btn.sheets-btn:hover { background: rgba(29,106,71,0.85); }
-  .tb-btn.danger-btn { background: rgba(192,57,43,0.4); border-color: rgba(255,120,100,0.4); }
-  .tb-btn.danger-btn:hover { background: rgba(192,57,43,0.65); }
-  .color-swatch { width: 19px; height: 19px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.35); cursor: pointer; }
-  .color-swatch.active { border-color: white; }
-  .size-btn { width: 24px; height: 24px; border-radius: 50%; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25); color: white; font-size: 9pt; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-  .size-btn.active, .size-btn:hover { background: rgba(255,255,255,0.3); }
-  .tb-label { font-size: 7pt; color: rgba(255,255,255,0.55); }
-  .tb-spacer { flex: 1; }
-  .sheets-status { font-size: 7.5pt; font-family: 'DM Mono', monospace; color: rgba(255,255,255,0.6); }
-  .sheets-status.ok { color: #7defa7; }
-  .sheets-status.err { color: #ffaaaa; }
-
-  /* ── SETUP BANNER ── */
-  .setup-banner {
-    position: fixed; top: 42px; left: 0; right: 0; z-index: 99;
-    background: #f39c12; color: white;
-    padding: 6px 16px; font-size: 8.5pt;
-    display: flex; align-items: center; gap: 10px;
-    font-family: 'DM Mono', monospace;
-  }
-  .setup-banner.hidden { display: none; }
-  .setup-banner a { color: white; font-weight: 600; }
-  .setup-banner-close { margin-left: auto; cursor: pointer; opacity: 0.7; }
-  .setup-banner-close:hover { opacity: 1; }
-
-  /* ── MODAL ── */
-  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; align-items: center; justify-content: center; }
-  .modal-overlay.open { display: flex; }
-  .modal { background: white; border-radius: 8px; padding: 24px; max-width: 540px; width: 92%; max-height: 85vh; overflow-y: auto; box-shadow: 0 8px 40px rgba(0,0,0,0.25); }
-  .modal h2 { font-size: 13pt; color: var(--accent); margin-bottom: 4px; }
-  .modal .modal-sub { font-size: 8pt; color: var(--muted); font-family: 'DM Mono', monospace; letter-spacing: 1px; margin-bottom: 16px; }
-  .modal-close { margin-top: 12px; background: none; border: var(--border); padding: 8px 16px; border-radius: 5px; cursor: pointer; font-family: 'DM Mono', monospace; font-size: 8pt; color: var(--muted); width: 100%; }
-  .modal-close:hover { background: #f0ede8; }
-
-  /* Config form */
-  .config-field { margin-bottom: 14px; }
-  .config-label { font-size: 7.5pt; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); font-family: 'DM Mono', monospace; display: block; margin-bottom: 5px; }
-  .config-input { width: 100%; border: 1.5px solid var(--rule); border-radius: 5px; padding: 8px 10px; font-size: 9pt; font-family: 'DM Mono', monospace; color: var(--ink); outline: none; transition: border-color 0.15s; }
-  .config-input:focus { border-color: var(--accent); }
-  .config-save-btn { width: 100%; padding: 10px; background: var(--accent); color: white; border: none; border-radius: 6px; font-size: 10pt; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; margin-top: 4px; }
-  .config-save-btn:hover { background: #122d47; }
-  .config-note { font-size: 8pt; color: var(--muted); margin-top: 8px; line-height: 1.5; }
-  .config-note code { background: #f0ede8; padding: 1px 5px; border-radius: 3px; font-family: 'DM Mono', monospace; font-size: 8pt; }
-  .step-list { list-style: none; counter-reset: steps; }
-  .step-list li { counter-increment: steps; display: flex; gap: 10px; margin-bottom: 10px; font-size: 9pt; line-height: 1.5; }
-  .step-list li::before { content: counter(steps); width: 22px; height: 22px; background: var(--accent); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 8pt; font-weight: 600; flex-shrink: 0; margin-top: 1px; font-family: 'DM Mono', monospace; }
-  .step-list code { background: #f0ede8; padding: 1px 5px; border-radius: 3px; font-family: 'DM Mono', monospace; font-size: 8pt; }
-  .divider { border: none; border-top: 1px solid var(--rule); margin: 16px 0; }
-
-  /* Export modal */
-  .modal-btn { display: block; width: 100%; padding: 11px 14px; margin-bottom: 10px; border-radius: 6px; border: 1.5px solid var(--rule); background: var(--paper); cursor: pointer; text-align: left; font-family: 'DM Sans', sans-serif; transition: all 0.15s; }
-  .modal-btn:hover { border-color: var(--accent); background: var(--accent-light); }
-  .modal-btn .btn-title { font-size: 10pt; font-weight: 600; color: var(--accent); }
-  .modal-btn .btn-desc { font-size: 8pt; color: var(--muted); margin-top: 2px; }
-  .modal-btn.green-btn { border-color: #a8d5b8; background: #f0faf4; }
-  .modal-btn.green-btn:hover { border-color: var(--green); background: #e0f5ea; }
-  .modal-btn.green-btn .btn-title { color: var(--green); }
-
-  /* Case log */
-  .case-log-item { border: var(--border); border-radius: 5px; padding: 10px 12px; margin-bottom: 8px; }
-  .case-log-item .cli-title { font-size: 9pt; font-weight: 600; color: var(--accent); }
-  .case-log-item .cli-meta { font-size: 7.5pt; color: var(--muted); font-family: 'DM Mono', monospace; margin-top: 2px; }
-  .case-log-item .cli-actions { display: flex; gap: 6px; margin-top: 6px; }
-  .cli-btn { font-size: 7pt; padding: 3px 8px; border-radius: 4px; border: 1px solid var(--rule); background: white; cursor: pointer; font-family: 'DM Mono', monospace; color: var(--muted); }
-  .cli-btn:hover { background: #f0ede8; }
-  .cli-btn.red { border-color: #f5c0bb; color: var(--red); }
-  .cli-btn.red:hover { background: #fdecea; }
-  .empty-log { text-align: center; padding: 24px; color: var(--muted); font-size: 9pt; font-family: 'DM Mono', monospace; }
-
-  /* ── PAGE ── */
-  .page { width: 8.5in; min-height: 11in; margin: 72px auto 24px; padding: 0.45in 0.45in 0.35in; background: var(--paper); position: relative; box-shadow: 0 4px 24px rgba(0,0,0,0.18); }
-  .page.with-banner { margin-top: 94px; }
-
-  /* ── HEADER ── */
-  .header { display: grid; grid-template-columns: auto 1fr auto; align-items: end; gap: 12px; border-bottom: 2.5px solid var(--accent); padding-bottom: 7px; margin-bottom: 10px; }
-  .header-title { font-size: 18pt; font-weight: 600; letter-spacing: -0.5px; color: var(--accent); line-height: 1; }
-  .header-sub { font-size: 7.5pt; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); font-family: 'DM Mono', monospace; margin-top: 2px; }
-  .header-fields { display: flex; gap: 16px; align-items: end; }
-  .field-group { display: flex; flex-direction: column; gap: 2px; }
-  .field-label { font-size: 6.5pt; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); font-family: 'DM Mono', monospace; }
-
-  /* ── EDITABLE FIELDS ── */
-  .ef { border: none; border-bottom: 1px solid var(--rule); background: transparent; font-family: 'DM Sans', sans-serif; font-size: 9pt; color: var(--ink); outline: none; width: 100%; padding: 1px 2px; min-height: 18px; transition: border-color 0.15s, background 0.15s; }
-  .ef:focus { border-color: var(--accent); background: rgba(26,58,92,0.04); }
-  textarea.ef { resize: none; width: 100%; border: none; border-bottom: 1px solid var(--rule); line-height: 22px; background-image: repeating-linear-gradient(to bottom, transparent, transparent 21px, var(--rule) 21px, var(--rule) 22px); background-size: 100% 22px; padding: 2px 2px; font-size: 9pt; font-family: 'DM Sans', sans-serif; color: var(--ink); }
-  textarea.ef:focus { outline: none; }
-
-  /* ── CASE BAR ── */
-  .case-bar { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; background: var(--accent); padding: 8px 12px; border-radius: 3px; margin-bottom: 10px; }
-  .case-bar .field-label { color: rgba(255,255,255,0.6); }
-  .case-bar .ef { color: white; border-color: rgba(255,255,255,0.35); }
-  .case-bar .ef:focus { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.7); }
-
-  /* ── MAIN GRID ── */
-  .main-grid { display: grid; grid-template-columns: 1.75in 1fr 1fr; gap: 9px; }
-  .body-col { display: flex; flex-direction: column; gap: 9px; }
-  .section { background: var(--box-bg); border: var(--border); border-radius: 3px; overflow: hidden; }
-  .section-head { background: var(--accent-light); border-bottom: var(--border); padding: 4px 9px; }
-  .section-head.red-head { background: #fdecea; }
-  .section-head.green-head { background: #e8f4ee; }
-  .section-head.gold-head { background: #fdf6e3; }
-  .section-title { font-size: 7pt; letter-spacing: 1.8px; text-transform: uppercase; font-weight: 600; color: var(--accent); font-family: 'DM Mono', monospace; }
-  .section-title.red { color: var(--red); }
-  .section-title.green { color: var(--green); }
-  .section-title.gold { color: #8a6a00; }
-  .section-body { padding: 7px 9px; }
-  .line-row { display: flex; align-items: center; border-bottom: 1px solid #e8e4dd; min-height: 22px; padding: 1px 0; gap: 5px; }
-  .line-row:last-child { border-bottom: none; }
-  .line-label { font-size: 7.5pt; color: var(--muted); white-space: nowrap; min-width: 60px; font-family: 'DM Mono', monospace; }
-
-  /* ── DIAGRAM ── */
-  .body-diagram-wrap { background: var(--box-bg); border: var(--border); border-radius: 3px; padding: 8px 6px 4px; display: flex; flex-direction: column; align-items: center; }
-  .diagram-top { display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 4px; padding: 0 2px; }
-  .diagram-title { font-size: 6.5pt; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); font-family: 'DM Mono', monospace; }
-  .dc-btn { font-size: 6.5pt; padding: 2px 5px; border: 1px solid var(--rule); border-radius: 3px; background: var(--paper); cursor: pointer; font-family: 'DM Mono', monospace; color: var(--muted); }
-  .dc-btn:hover { background: var(--accent-light); color: var(--accent); }
-  #bodyCanvas { display: block; width: 100%; cursor: crosshair; touch-action: none; border-radius: 2px; }
-  .port-legend { width: 100%; margin-top: 5px; border-top: 1px dashed var(--rule); padding-top: 5px; }
-  .port-legend-title { font-size: 6pt; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); font-family: 'DM Mono', monospace; margin-bottom: 3px; }
-  .port-rows { display: flex; flex-direction: column; gap: 2px; }
-  .port-row { display: flex; align-items: center; gap: 5px; border-bottom: 1px solid #eeece7; padding-bottom: 2px; }
-  .port-num { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--accent); display: flex; align-items: center; justify-content: center; font-size: 7pt; font-weight: 600; color: var(--accent); font-family: 'DM Mono', monospace; flex-shrink: 0; }
-
-  /* ── CHECKBOXES ── */
-  .check-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 10px; }
-  .check-item { display: flex; align-items: center; gap: 5px; font-size: 8pt; min-height: 18px; }
-  .check-item input[type="checkbox"] { width: 12px; height: 12px; accent-color: var(--accent); cursor: pointer; flex-shrink: 0; }
-
-  /* ── MED TABLE ── */
-  .med-grid { display: grid; grid-template-columns: 80px 1fr 55px 40px; gap: 4px; }
-  .med-col-head { font-size: 6.5pt; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); font-family: 'DM Mono', monospace; padding-bottom: 3px; border-bottom: 1px solid var(--rule); }
-  .med-cb { display: flex; align-items: center; justify-content: center; }
-  .med-cb input { width: 13px; height: 13px; accent-color: var(--green); cursor: pointer; }
-
-  /* ── ATTENDING TABLE ── */
-  .pref-table { width: 100%; border-collapse: collapse; font-size: 8pt; }
-  .pref-table td { border-bottom: 1px solid #e8e4dd; padding: 1px 4px; vertical-align: middle; height: 22px; }
-  .pref-table td:first-child { font-family: 'DM Mono', monospace; font-size: 7.5pt; color: var(--muted); white-space: nowrap; width: 90px; border-right: 1px solid #e8e4dd; }
-  .pref-table tr:last-child td { border-bottom: none; }
-
-  /* ── VITALS ── */
-  .vitals-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
-  .vital-box { border: 1px solid var(--rule); border-radius: 2px; padding: 4px 6px; display: flex; flex-direction: column; gap: 2px; }
-  .vital-label { font-size: 6.5pt; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; font-family: 'DM Mono', monospace; }
-
-  /* ── SPECIMENS ── */
-  .spec-row { display: grid; grid-template-columns: 65px 1fr; gap: 4px; align-items: center; border-bottom: 1px solid #e8e4dd; min-height: 21px; padding: 1px 0; }
-  .spec-row:last-child { border-bottom: none; }
-  .spec-label { font-size: 7.5pt; color: var(--muted); font-family: 'DM Mono', monospace; }
-
-  /* ── FOOTER ── */
-  .footer { margin-top: 9px; border-top: 1px solid var(--rule); padding-top: 5px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; }
-  .footer-checks { display: flex; gap: 14px; flex-wrap: wrap; }
-  .footer-check { display: flex; align-items: center; gap: 4px; font-size: 8pt; }
-  .footer-check input { accent-color: var(--accent); width: 12px; height: 12px; cursor: pointer; }
-  .footer-note { font-size: 7pt; color: var(--muted); font-family: 'DM Mono', monospace; }
-
-  /* ── TOAST ── */
-  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); color: white; padding: 10px 20px; border-radius: 20px; font-family: 'DM Mono', monospace; font-size: 8.5pt; z-index: 999; opacity: 0; transition: opacity 0.3s; pointer-events: none; background: #1a3a5c; }
-  .toast.show { opacity: 1; }
-  .toast.success { background: #1d6a47; }
-  .toast.error { background: #c0392b; }
-
-  @media print {
-    .toolbar, .modal-overlay, .toast, .setup-banner { display: none !important; }
-    body { background: white; }
-    .page { margin: 0; padding: 0.35in 0.4in; box-shadow: none; }
-  }
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+ 
+:root {
+  --bg: #f4f1ec;
+  --surface: #ffffff;
+  --surface2: #f9f7f4;
+  --ink: #1a1a1a;
+  --ink2: #555;
+  --ink3: #999;
+  --accent: #1c3f5e;
+  --accent2: #2d6a9f;
+  --green: #1a5e3a;
+  --red: #8b1f1f;
+  --amber: #7a5100;
+  --rule: #ddd8d0;
+  --radius: 10px;
+  --mono: 'IBM Plex Mono', monospace;
+  --sans: 'IBM Plex Sans', sans-serif;
+  --nav-h: 48px;
+  --header-h: 56px;
+}
+ 
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html { scroll-behavior: smooth; }
+body { background: var(--bg); font-family: var(--sans); color: var(--ink); font-size: 15px; min-height: 100vh; padding-bottom: env(safe-area-inset-bottom, 20px); }
+ 
+/* ══════════════════════════════
+   TOP HEADER
+══════════════════════════════ */
+.app-header {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  height: var(--header-h);
+  background: var(--accent);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 16px;
+  padding-top: env(safe-area-inset-top, 0);
+}
+.app-title { font-family: var(--mono); font-size: 14px; font-weight: 600; color: white; letter-spacing: 0.5px; }
+.app-title span { opacity: 0.55; font-weight: 400; }
+.header-actions { display: flex; gap: 8px; }
+.hbtn {
+  font-family: var(--mono); font-size: 11px; font-weight: 500;
+  padding: 6px 12px; border-radius: 6px; border: none; cursor: pointer;
+  transition: all 0.15s;
+}
+.hbtn-ghost { background: rgba(255,255,255,0.12); color: white; }
+.hbtn-ghost:hover, .hbtn-ghost:active { background: rgba(255,255,255,0.22); }
+.hbtn-save { background: #2ecc71; color: #0a2a1a; font-weight: 600; }
+.hbtn-save:hover, .hbtn-save:active { background: #27ae60; }
+.hbtn-pdf { background: rgba(255,255,255,0.15); color: white; }
+ 
+/* ══════════════════════════════
+   STICKY SECTION NAV
+══════════════════════════════ */
+.section-nav {
+  position: sticky; top: var(--header-h); z-index: 90;
+  background: var(--accent);
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  overflow-x: auto; white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.section-nav::-webkit-scrollbar { display: none; }
+.section-nav-inner { display: inline-flex; padding: 0 12px; }
+.nav-pill {
+  font-family: var(--mono); font-size: 11px; font-weight: 500;
+  color: rgba(255,255,255,0.5);
+  padding: 10px 14px; border: none; background: none; cursor: pointer;
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+  transition: all 0.2s; white-space: nowrap;
+}
+.nav-pill:hover { color: rgba(255,255,255,0.85); }
+.nav-pill.active { color: white; border-bottom-color: #2ecc71; }
+ 
+/* ══════════════════════════════
+   MAIN SCROLL BODY
+══════════════════════════════ */
+.scroll-body {
+  margin-top: calc(var(--header-h) + var(--nav-h));
+  padding: 16px 14px 40px;
+  max-width: 680px;
+  margin-left: auto; margin-right: auto;
+}
+ 
+/* ══════════════════════════════
+   SECTION BLOCKS
+══════════════════════════════ */
+.section-block {
+  background: var(--surface);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 14px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.07), 0 0 0 1px rgba(0,0,0,0.05);
+}
+.section-block:last-child { margin-bottom: 0; }
+ 
+.section-label {
+  font-family: var(--mono); font-size: 10px; font-weight: 600;
+  letter-spacing: 2px; text-transform: uppercase;
+  padding: 11px 14px 10px;
+  border-bottom: 1px solid var(--rule);
+  display: flex; align-items: center; gap: 8px;
+}
+.sl-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.sl-blue { background: var(--accent2); }
+.sl-green { background: #27ae60; }
+.sl-red { background: #e74c3c; }
+.sl-amber { background: #f39c12; }
+.sl-purple { background: #8e44ad; }
+.sl-teal { background: #16a085; }
+ 
+.section-label-text { color: var(--ink2); }
+.section-label-text.blue { color: var(--accent); }
+.section-label-text.green { color: var(--green); }
+.section-label-text.red { color: var(--red); }
+.section-label-text.amber { color: var(--amber); }
+ 
+/* ══════════════════════════════
+   CASE IDENTITY (hero block)
+══════════════════════════════ */
+.case-hero {
+  background: var(--accent);
+  border-radius: var(--radius);
+  padding: 16px 14px 14px;
+  margin-bottom: 14px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+.case-hero-title { font-family: var(--mono); font-size: 11px; color: rgba(255,255,255,0.45); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 12px; }
+.case-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.case-field-full { grid-column: 1/-1; }
+.cf-label { font-family: var(--mono); font-size: 9px; color: rgba(255,255,255,0.45); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 4px; }
+.cf-input {
+  width: 100%; background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.15); border-radius: 6px;
+  color: white; font-family: var(--sans); font-size: 15px; font-weight: 500;
+  padding: 8px 10px; outline: none; transition: border-color 0.15s;
+}
+.cf-input::placeholder { color: rgba(255,255,255,0.25); }
+.cf-input:focus { border-color: rgba(255,255,255,0.5); background: rgba(255,255,255,0.15); }
+.cf-input.ta { resize: none; overflow: hidden; min-height: 36px; line-height: 1.4; }
+ 
+/* ══════════════════════════════
+   FIELD ROWS
+══════════════════════════════ */
+.field-rows { padding: 4px 0; }
+.field-row {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--rule);
+}
+.field-row:last-child { border-bottom: none; }
+.fr-label {
+  font-family: var(--mono); font-size: 11px; color: var(--ink3);
+  min-width: 86px; padding-top: 8px; flex-shrink: 0; line-height: 1.2;
+}
+.fr-input {
+  flex: 1; border: none; border-bottom: 1.5px solid var(--rule);
+  background: transparent; font-family: var(--sans); font-size: 15px;
+  color: var(--ink); padding: 6px 2px; outline: none; width: 100%;
+  resize: none; overflow: hidden; min-height: 34px; line-height: 1.4;
+  transition: border-color 0.15s;
+}
+.fr-input:focus { border-color: var(--accent2); }
+.fr-input::placeholder { color: var(--ink3); }
+ 
+/* ══════════════════════════════
+   CHECK GROUPS
+══════════════════════════════ */
+.check-group { padding: 12px 14px; display: flex; flex-wrap: wrap; gap: 8px 16px; }
+.check-item {
+  display: flex; align-items: center; gap: 7px;
+  font-family: var(--sans); font-size: 14px; color: var(--ink2);
+  cursor: pointer; user-select: none;
+}
+.check-item input[type="checkbox"] { width: 17px; height: 17px; accent-color: var(--accent); cursor: pointer; flex-shrink: 0; }
+ 
+/* ══════════════════════════════
+   MED TABLE
+══════════════════════════════ */
+.med-table { width: 100%; border-collapse: collapse; }
+.med-table th { font-family: var(--mono); font-size: 10px; color: var(--ink3); letter-spacing: 1px; text-transform: uppercase; padding: 8px 10px; border-bottom: 1px solid var(--rule); text-align: left; background: var(--surface2); }
+.med-table td { padding: 6px 8px; border-bottom: 1px solid var(--rule); vertical-align: middle; }
+.med-table tr:last-child td { border-bottom: none; }
+.med-input { border: none; background: transparent; font-family: var(--sans); font-size: 14px; color: var(--ink); width: 100%; outline: none; padding: 4px 2px; border-bottom: 1.5px solid transparent; transition: border-color 0.15s; }
+.med-input:focus { border-color: var(--accent2); }
+.med-cb { display: flex; justify-content: center; }
+.med-cb input { width: 17px; height: 17px; accent-color: var(--green); cursor: pointer; }
+ 
+/* ══════════════════════════════
+   VITALS GRID
+══════════════════════════════ */
+.vitals-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--rule); }
+.vital-cell { background: var(--surface); padding: 10px 12px; }
+.vital-label { font-family: var(--mono); font-size: 9px; color: var(--ink3); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 5px; }
+.vital-input { border: none; border-bottom: 1.5px solid var(--rule); background: transparent; font-family: var(--sans); font-size: 15px; color: var(--ink); width: 100%; outline: none; padding: 3px 0; transition: border-color 0.15s; }
+.vital-input:focus { border-color: var(--accent2); }
+ 
+/* ══════════════════════════════
+   ATTENDING PREF TABLE
+══════════════════════════════ */
+.pref-table { width: 100%; border-collapse: collapse; }
+.pref-table td { padding: 9px 12px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+.pref-table tr:last-child td { border-bottom: none; }
+.pt-label { font-family: var(--mono); font-size: 11px; color: var(--ink3); white-space: nowrap; width: 110px; padding-top: 12px; }
+.pt-input { border: none; border-bottom: 1.5px solid var(--rule); background: transparent; font-family: var(--sans); font-size: 15px; color: var(--ink); width: 100%; outline: none; padding: 4px 2px; resize: none; overflow: hidden; min-height: 30px; line-height: 1.4; transition: border-color 0.15s; }
+.pt-input:focus { border-color: var(--accent2); }
+ 
+/* ══════════════════════════════
+   TEXT AREAS (notes)
+══════════════════════════════ */
+.note-area {
+  width: 100%; border: none; background: transparent;
+  font-family: var(--sans); font-size: 15px; color: var(--ink);
+  padding: 14px; outline: none; resize: none; min-height: 48px;
+  line-height: 1.6; overflow: hidden;
+}
+.note-area::placeholder { color: var(--ink3); }
+ 
+/* ══════════════════════════════
+   CHECKLIST FOOTER
+══════════════════════════════ */
+.checklist-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px; border-bottom: 1px solid var(--rule);
+  cursor: pointer;
+}
+.checklist-row:last-child { border-bottom: none; }
+.checklist-row input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--accent); cursor: pointer; flex-shrink: 0; }
+.checklist-row label { font-family: var(--sans); font-size: 15px; color: var(--ink2); cursor: pointer; flex: 1; }
+ 
+/* ══════════════════════════════
+   DIAGRAM SECTION
+══════════════════════════════ */
+.diagram-section { }
+ 
+/* Diagram tabs */
+.dtab-bar { display: flex; border-bottom: 1px solid var(--rule); background: var(--surface2); }
+.dtab { flex: 1; padding: 11px 8px; font-family: var(--mono); font-size: 11px; font-weight: 500; color: var(--ink3); border: none; background: none; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.15s; text-align: center; }
+.dtab.active { color: var(--accent); border-bottom-color: var(--accent); background: var(--surface); }
+.dtab-pane { display: none; }
+.dtab-pane.active { display: block; }
+ 
+/* Library grid */
+.lib-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 12px; }
+.lib-item { border-radius: 8px; border: 2px solid var(--rule); overflow: hidden; cursor: pointer; transition: all 0.15s; background: white; position: relative; }
+.lib-item:hover, .lib-item:active { border-color: var(--accent2); transform: scale(1.02); }
+.lib-item.active { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+.lib-thumb { width: 100%; aspect-ratio: 2/3; object-fit: contain; display: block; background: white; }
+.lib-thumb-canvas { width: 100%; aspect-ratio: 2/3; display: block; }
+.lib-name { font-family: var(--mono); font-size: 9px; color: var(--ink3); text-align: center; padding: 5px 4px; background: var(--surface2); border-top: 1px solid var(--rule); line-height: 1.2; }
+.lib-del { position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; border-radius: 50%; background: rgba(200,50,50,0.85); color: white; border: none; font-size: 11px; cursor: pointer; display: none; align-items: center; justify-content: center; font-weight: 700; }
+.lib-item:hover .lib-del, .lib-item:focus-within .lib-del { display: flex; }
+.lib-import-row { padding: 4px 12px 14px; display: flex; gap: 8px; flex-wrap: wrap; }
+.lib-import-btn { font-family: var(--mono); font-size: 11px; padding: 8px 14px; border-radius: 7px; border: 1.5px dashed var(--accent2); color: var(--accent); background: rgba(45,106,159,0.06); cursor: pointer; transition: all 0.15s; }
+.lib-import-btn:hover, .lib-import-btn:active { background: rgba(45,106,159,0.14); }
+#libImgInput, #libSvgInput { display: none; }
+ 
+/* Canvas area */
+.canvas-header { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--rule); background: var(--surface2); }
+.active-diag-name { font-family: var(--mono); font-size: 11px; color: var(--accent); font-weight: 600; }
+.canvas-tools { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 8px 12px; background: var(--surface2); border-bottom: 1px solid var(--rule); }
+.ct-group { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+.ct-sep { width: 1px; height: 20px; background: var(--rule); margin: 0 4px; }
+.tool-btn { font-family: var(--mono); font-size: 11px; padding: 5px 9px; border-radius: 6px; border: 1px solid var(--rule); background: white; color: var(--ink2); cursor: pointer; transition: all 0.12s; white-space: nowrap; }
+.tool-btn:hover, .tool-btn:active { background: var(--surface2); }
+.tool-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+.cswatch { width: 22px; height: 22px; border-radius: 50%; border: 2.5px solid transparent; cursor: pointer; flex-shrink: 0; transition: all 0.12s; }
+.cswatch.active { border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink); }
+.sz-btn { width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--rule); background: white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--ink2); transition: all 0.12s; }
+.sz-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+.clear-btn { font-family: var(--mono); font-size: 10px; padding: 5px 9px; border-radius: 6px; border: 1px solid var(--rule); background: white; color: var(--red); cursor: pointer; margin-left: auto; }
+#bodyCanvas { display: block; width: 100%; touch-action: none; cursor: crosshair; background: white; }
+ 
+/* Port legend */
+.port-legend { padding: 10px 14px 4px; border-top: 1px dashed var(--rule); }
+.port-legend-title { font-family: var(--mono); font-size: 9px; color: var(--ink3); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 6px; }
+.port-row { display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--rule); padding: 5px 0; }
+.port-row:last-child { border-bottom: none; }
+.port-num { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--accent); display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 10px; font-weight: 600; color: var(--accent); flex-shrink: 0; }
+.port-input { flex: 1; border: none; border-bottom: 1.5px solid var(--rule); background: transparent; font-family: var(--sans); font-size: 14px; color: var(--ink); padding: 4px 2px; outline: none; transition: border-color 0.15s; }
+.port-input:focus { border-color: var(--accent2); }
+ 
+/* ══════════════════════════════
+   SAVE BUTTON STRIP
+══════════════════════════════ */
+.save-strip {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 90;
+  background: var(--surface);
+  border-top: 1px solid var(--rule);
+  padding: 10px 14px;
+  padding-bottom: max(10px, env(safe-area-inset-bottom, 10px));
+  display: flex; gap: 8px;
+  min-height: 64px; align-items: center;
+}
+.strip-btn {
+  flex: 1; padding: 13px 8px; border-radius: 8px; border: none;
+  font-family: var(--mono); font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: all 0.15s;
+  -webkit-appearance: none; touch-action: manipulation; pointer-events: auto;
+}
+.strip-save { background: var(--accent); color: white; }
+.strip-save:active { background: #142d44; }
+.strip-pdf { background: var(--surface2); color: var(--ink2); border: 1px solid var(--rule); }
+.strip-pdf:active { background: #e8e4dc; }
+.strip-new { background: var(--surface2); color: var(--red); border: 1px solid var(--rule); }
+.strip-new:active { background: #fdecea; }
+.strip-setup { background: var(--surface2); color: var(--ink3); border: 1px solid var(--rule); }
+.strip-setup:active { background: #e8e4dc; }
+ 
+/* ══════════════════════════════
+   MODAL
+══════════════════════════════ */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; align-items: flex-end; justify-content: center; }
+.modal-overlay.open { display: flex; }
+.modal-sheet {
+  background: white; border-radius: 18px 18px 0 0; padding: 24px 20px;
+  width: 100%; max-width: 640px; max-height: 85vh; overflow-y: auto;
+  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0));
+}
+.modal-handle { width: 36px; height: 4px; background: var(--rule); border-radius: 2px; margin: 0 auto 20px; }
+.modal-title { font-family: var(--mono); font-size: 14px; font-weight: 600; color: var(--accent); margin-bottom: 4px; }
+.modal-sub { font-family: var(--mono); font-size: 10px; color: var(--ink3); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 18px; }
+.form-label { font-family: var(--mono); font-size: 10px; color: var(--ink3); letter-spacing: 1px; text-transform: uppercase; display: block; margin-bottom: 6px; }
+.form-input { width: 100%; border: 1.5px solid var(--rule); border-radius: 8px; padding: 11px 12px; font-family: var(--sans); font-size: 15px; color: var(--ink); outline: none; margin-bottom: 14px; transition: border-color 0.15s; }
+.form-input:focus { border-color: var(--accent2); }
+.form-btn { width: 100%; padding: 13px; background: var(--accent); color: white; border: none; border-radius: 8px; font-family: var(--mono); font-size: 13px; font-weight: 600; cursor: pointer; margin-top: 4px; }
+.form-btn:hover { background: #142d44; }
+.form-cancel { width: 100%; padding: 12px; background: none; border: 1px solid var(--rule); border-radius: 8px; font-family: var(--mono); font-size: 12px; color: var(--ink3); cursor: pointer; margin-top: 8px; }
+.step-list { list-style: none; counter-reset: s; margin-bottom: 16px; }
+.step-list li { counter-increment: s; display: flex; gap: 10px; margin-bottom: 10px; font-size: 14px; line-height: 1.5; color: var(--ink2); }
+.step-list li::before { content: counter(s); width: 22px; height: 22px; min-width: 22px; background: var(--accent); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 11px; font-weight: 600; margin-top: 1px; }
+.step-list code { background: var(--surface2); padding: 1px 5px; border-radius: 4px; font-family: var(--mono); font-size: 12px; }
+ 
+/* ══════════════════════════════
+   STATUS DOT
+══════════════════════════════ */
+.status-dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,0.3); flex-shrink: 0; }
+.status-dot.ok { background: #2ecc71; }
+ 
+/* ══════════════════════════════
+   TOAST
+══════════════════════════════ */
+.toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: #1a1a1a; color: white; padding: 11px 22px; border-radius: 22px; font-family: var(--mono); font-size: 12px; z-index: 999; opacity: 0; transition: opacity 0.25s; pointer-events: none; white-space: nowrap; }
+.toast.show { opacity: 1; }
+.toast.ok { background: #145c30; }
+.toast.err { background: #6b1515; }
+ 
+@media print {
+  .app-header, .section-nav, .save-strip, .modal-overlay, .toast, .dtab-bar, .canvas-tools, .lib-import-row { display: none !important; }
+  .scroll-body { margin-top: 0 !important; padding: 16px; }
+  .section-block { box-shadow: none; border: 1px solid #ddd; break-inside: avoid; }
+  .dtab-pane { display: block !important; }
+  body { background: white; }
+}
 </style>
 </head>
 <body>
-
-<!-- TOOLBAR -->
-<div class="toolbar">
-  <div class="toolbar-title">⬡ OR Sheet</div>
-  <div class="tool-sep"></div>
-  <span class="tb-label">Draw:</span>
-  <button class="tb-btn active" id="toolPen" onclick="setTool('pen')">✏️ Pen</button>
-  <button class="tb-btn" id="toolText" onclick="setTool('text')">T Label</button>
-  <button class="tb-btn" id="toolErase" onclick="setTool('erase')">⌫ Erase</button>
-  <div class="tool-sep"></div>
-  <div class="color-swatch active" style="background:#c0392b" id="swRed" onclick="setColor('#c0392b','swRed')"></div>
-  <div class="color-swatch" style="background:#1a3a5c" id="swBlue" onclick="setColor('#1a3a5c','swBlue')"></div>
-  <div class="color-swatch" style="background:#1d6a47" id="swGreen" onclick="setColor('#1d6a47','swGreen')"></div>
-  <div class="color-swatch" style="background:#222" id="swBlack" onclick="setColor('#222','swBlack')"></div>
-  <div class="tool-sep"></div>
-  <button class="size-btn active" id="sz1" onclick="setSize(2,'sz1')">·</button>
-  <button class="size-btn" id="sz2" onclick="setSize(4,'sz2')">●</button>
-  <button class="size-btn" id="sz3" onclick="setSize(7,'sz3')">⬤</button>
-  <div class="tool-sep"></div>
-  <button class="tb-btn" onclick="clearCanvas()">🗑 Clear</button>
-  <div class="tb-spacer"></div>
-  <span id="sheetsStatus" class="sheets-status">⚙ Not configured</span>
-  <div class="tool-sep"></div>
-  <button class="tb-btn sheets-btn" onclick="saveToSheets()">📊 Save to Sheets</button>
-  <button class="tb-btn" onclick="openExportModal()">📤 Other Export</button>
-  <button class="tb-btn" onclick="openConfigModal()">⚙ Setup</button>
-  <button class="tb-btn danger-btn" onclick="newCase()">＋ New Case</button>
-  <button class="tb-btn" onclick="window.print()">🖨 Print</button>
-</div>
-
-<!-- SETUP BANNER -->
-<div class="setup-banner" id="setupBanner">
-  ⚠ Google Sheets not configured yet — click <strong style="margin:0 4px">⚙ Setup</strong> in the toolbar to connect your spreadsheet and start saving cases.
-  <span class="setup-banner-close" onclick="document.getElementById('setupBanner').classList.add('hidden')">✕</span>
-</div>
-
-<!-- CONFIG MODAL -->
-<div class="modal-overlay" id="configModal">
-  <div class="modal">
-    <h2>⚙ Google Sheets Setup</h2>
-    <div class="modal-sub">ONE-TIME CONFIGURATION · TAKES ~10 MINUTES</div>
-
-    <p style="font-size:9pt;line-height:1.6;margin-bottom:14px;">Follow these steps once. After that, every "Save to Sheets" sends your case data directly to your Google Sheet — searchable and filterable from the Sheets app on your iPhone.</p>
-
+ 
+<!-- TOP HEADER -->
+<header class="app-header">
+  <div class="app-title">⬡ OR Sheet <span>v7</span></div>
+  <div class="header-actions">
+    <div class="status-dot" id="statusDot"></div>
+    <button class="hbtn hbtn-ghost" onclick="openSetup()">⚙</button>
+    <button class="hbtn hbtn-save" onclick="saveToSheets()">📊 Save</button>
+  </div>
+</header>
+ 
+<!-- STICKY SECTION NAV -->
+<nav class="section-nav" id="sectionNav">
+  <div class="section-nav-inner">
+    <button class="nav-pill active" onclick="navScrollTo('s-case')">Case</button>
+    <button class="nav-pill" onclick="navScrollTo('s-diagram')">Diagram</button>
+    <button class="nav-pill" onclick="navScrollTo('s-prep')">Prep</button>
+    <button class="nav-pill" onclick="navScrollTo('s-meds')">Meds</button>
+    <button class="nav-pill" onclick="navScrollTo('s-instruments')">Instruments</button>
+    <button class="nav-pill" onclick="navScrollTo('s-attending')">Attending</button>
+    <button class="nav-pill" onclick="navScrollTo('s-postop')">Post-op</button>
+    <button class="nav-pill" onclick="navScrollTo('s-opdata')">Op Data</button>
+    <button class="nav-pill" onclick="navScrollTo('s-specimens')">Specimens</button>
+    <button class="nav-pill" onclick="navScrollTo('s-notes')">Notes</button>
+    <button class="nav-pill" onclick="navScrollTo('s-checklist')">Checklist</button>
+  </div>
+</nav>
+ 
+<!-- SETUP MODAL -->
+<div class="modal-overlay" id="setupModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">⚙ Google Sheets Setup</div>
+    <div class="modal-sub">One-time configuration</div>
     <ol class="step-list">
-      <li>Go to <strong>sheets.google.com</strong> and create a new blank spreadsheet. Name it something like <em>OR Case Log</em>.</li>
-      <li>In that spreadsheet, click <strong>Extensions → Apps Script</strong>. A code editor will open.</li>
-      <li>Delete all existing code in the editor, then paste in the Apps Script code from the separate <strong>apps_script.gs</strong> file provided.</li>
-      <li>Click <strong>Save</strong> (disk icon), then click <strong>Deploy → New deployment</strong>.</li>
-      <li>Click the gear icon → choose <strong>Web app</strong>. Set "Execute as" = <em>Me</em>, "Who has access" = <em>Anyone</em>. Click <strong>Deploy</strong>.</li>
-      <li>Google will ask you to authorize — click <strong>Authorize access</strong>, sign in, and click <strong>Advanced → Go to OR Case Log (unsafe)</strong> if prompted.</li>
-      <li>Copy the <strong>Web app URL</strong> (looks like <code>https://script.google.com/macros/s/ABC.../exec</code>) and paste it below.</li>
+      <li>Create a blank Google Sheet → <strong>Extensions → Apps Script</strong></li>
+      <li>Paste the <code>apps_script_v2.gs</code> code and save</li>
+      <li><strong>Deploy → New deployment → Web app</strong><br>Set "Who has access" to <em>Anyone</em></li>
+      <li>Copy the Web app URL (ends in <code>/exec</code>)</li>
     </ol>
-
-    <hr class="divider">
-
-    <div class="config-field">
-      <label class="config-label">Apps Script Web App URL</label>
-      <input class="config-input" id="configUrl" type="text" placeholder="https://script.google.com/macros/s/YOUR_ID/exec">
+    <label class="form-label">Web App URL</label>
+    <input class="form-input" id="cfgUrl" type="url" placeholder="https://script.google.com/macros/s/.../exec">
+    <label class="form-label">Your name (optional)</label>
+    <input class="form-input" id="cfgName" type="text" placeholder="Dr. Smith">
+    <button class="form-btn" onclick="saveConfig()">Save Configuration</button>
+    <button class="form-cancel" onclick="closeSetup()">Cancel</button>
+    <div style="margin-top:20px;border-top:1px solid var(--rule);padding-top:16px;">
+      <div style="font-family:var(--mono);font-size:10px;color:var(--ink3);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">Connection Debugger</div>
+      <button id="debugTestBtn" onclick="debugSaveTest()" style="width:100%;padding:11px;background:#f4f1ec;border:1.5px solid var(--rule);border-radius:8px;font-family:var(--mono);font-size:12px;color:var(--ink2);cursor:pointer;margin-bottom:10px;">🔬 Send Test Row to Sheet</button>
+      <pre id="debugResult" style="background:#f4f1ec;border-radius:6px;padding:12px;font-family:var(--mono);font-size:11px;color:#555;white-space:pre-wrap;word-break:break-all;min-height:40px;border:1px solid var(--rule);line-height:1.5;"></pre>
     </div>
-    <div class="config-field">
-      <label class="config-label">Your name / identifier (optional)</label>
-      <input class="config-input" id="configName" type="text" placeholder="e.g. Dr. Smith — shows in sheet">
-    </div>
-    <button class="config-save-btn" onclick="saveConfig()">Save Configuration</button>
-    <p class="config-note" style="margin-top:10px;">Your URL is saved locally in this browser. It never leaves your device except when sending case data to <em>your own</em> Google Sheet.</p>
-
-    <button class="modal-close" onclick="closeConfigModal()">Cancel</button>
   </div>
 </div>
-
-<!-- EXPORT MODAL -->
-<div class="modal-overlay" id="exportModal">
-  <div class="modal">
-    <h2>📤 Other Export Options</h2>
-    <div class="modal-sub">ADDITIONAL WAYS TO SAVE THIS CASE</div>
-    <button class="modal-btn" onclick="downloadCSV()">
-      <div class="btn-title">📊 Download as CSV</div>
-      <div class="btn-desc">Save a spreadsheet-compatible file to your phone's Files app.</div>
-    </button>
-    <button class="modal-btn" onclick="downloadJSON()">
-      <div class="btn-title">📁 Download as JSON</div>
-      <div class="btn-desc">Full structured backup including diagram. Best for archiving.</div>
-    </button>
-    <button class="modal-btn" onclick="emailSummary()">
-      <div class="btn-title">✉️ Email summary</div>
-      <div class="btn-desc">Opens Mail app pre-filled with a complete text summary.</div>
-    </button>
-    <button class="modal-btn" onclick="copyToClipboard()">
-      <div class="btn-title">📋 Copy to clipboard</div>
-      <div class="btn-desc">Paste into Notes, Messages, or anywhere else.</div>
-    </button>
-    <button class="modal-btn" onclick="window.print(); closeExportModal()">
-      <div class="btn-title">🖨 Print / Save as PDF</div>
-      <div class="btn-desc">Use "Save as PDF" in the print dialog for a printable record.</div>
-    </button>
-    <button class="modal-close" onclick="closeExportModal()">Cancel</button>
+ 
+<!-- SAVE ERROR MODAL -->
+<div class="modal-overlay" id="saveErrModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div style="font-size:24px;margin-bottom:8px;">⚠️</div>
+    <div class="modal-title" id="saveErrTitle">Save Failed</div>
+    <div style="margin:10px 0 6px;font-family:var(--mono);font-size:12px;color:var(--red);word-break:break-all;" id="saveErrMsg"></div>
+    <pre style="background:var(--bg);border-radius:8px;padding:12px;font-family:var(--mono);font-size:11px;color:#555;white-space:pre-wrap;word-break:break-all;max-height:200px;overflow-y:auto;margin-bottom:16px;border:1px solid var(--rule);" id="saveErrDetail"></pre>
+    <button class="form-btn" style="background:#555;" onclick="document.getElementById('saveErrModal').classList.remove('open')">Close</button>
+    <button class="form-cancel" onclick="openSetup();document.getElementById('saveErrModal').classList.remove('open')">⚙ Open Setup</button>
   </div>
 </div>
-
+ 
+<!-- NEW CASE CONFIRM MODAL -->
+<div class="modal-overlay" id="newCaseModal">
+  <div class="modal-sheet" style="text-align:center;">
+    <div class="modal-handle"></div>
+    <div style="font-size:28px;margin-bottom:10px;">＋</div>
+    <div class="modal-title" style="text-align:center;">Start a new case?</div>
+    <p style="font-size:14px;color:var(--ink3);margin:10px 0 22px;line-height:1.5;">This will clear all fields and the diagram. Make sure you've saved first.</p>
+    <button class="form-btn" style="background:var(--red);" onclick="confirmNewCase()">Yes, clear everything</button>
+    <button class="form-cancel" onclick="cancelNewCase()">Cancel</button>
+  </div>
+</div>
+<div class="modal-overlay" id="diagInfoModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">📷 What happens to the diagram?</div>
+    <div class="modal-sub">When you save to Google Sheets</div>
+    <p style="font-size:14px;line-height:1.6;color:var(--ink2);margin-bottom:14px;">
+      The diagram is captured as a PNG image and handled differently depending on which Apps Script you're using:
+    </p>
+    <div style="background:var(--surface2);border-radius:8px;padding:14px;margin-bottom:12px;border:1px solid var(--rule);">
+      <div style="font-family:var(--mono);font-size:11px;font-weight:600;color:var(--green);margin-bottom:6px;">✓ apps_script_v2.gs (recommended)</div>
+      <p style="font-size:14px;line-height:1.5;color:var(--ink2);">The diagram is automatically uploaded to a folder called <strong>"OR Case Log Images"</strong> in your Google Drive. A clickable link appears in the sheet — tap it to open the image.</p>
+    </div>
+    <div style="background:var(--surface2);border-radius:8px;padding:14px;margin-bottom:16px;border:1px solid var(--rule);">
+      <div style="font-family:var(--mono);font-size:11px;font-weight:600;color:var(--amber);margin-bottom:6px;">⚠ apps_script_v1.gs (original)</div>
+      <p style="font-size:14px;line-height:1.5;color:var(--ink2);">The raw image data is stored as a very long text string in the cell — not human-readable. Upgrade to v2 for proper image handling.</p>
+    </div>
+    <p style="font-size:13px;color:var(--ink3);line-height:1.5;">You can also always use <strong>🖨 PDF</strong> to save a full printable snapshot of the case including the diagram.</p>
+    <button class="form-cancel" onclick="closeDiagInfo()">Got it</button>
+  </div>
+</div>
+ 
 <div class="toast" id="toast"></div>
-
-<!-- PAGE -->
-<div class="page" id="mainPage">
-  <div class="header">
+<input type="file" id="libImgInput" accept="image/*" onchange="importImage(event)">
+<input type="file" id="libSvgInput" accept=".svg,image/svg+xml" onchange="importSVG(event)">
+ 
+<!-- ════════════════════════════════════════
+     MAIN SCROLL BODY
+════════════════════════════════════════ -->
+<div class="scroll-body">
+ 
+<!-- ── CASE IDENTITY ── -->
+<div id="s-case" class="case-hero">
+  <div class="case-hero-title">Case Identity</div>
+  <div class="case-fields">
     <div>
-      <div class="header-title">OR Case Reference</div>
-      <div class="header-sub">Surgical Procedure Tracking Sheet</div>
+      <div class="cf-label">Date</div>
+      <textarea class="cf-input ta" id="f_date" rows="1" placeholder="__/__/__" oninput="ar(this)"></textarea>
     </div>
-    <div></div>
-    <div class="header-fields">
-      <div class="field-group"><div class="field-label">Date</div><input class="ef" id="f_date" type="text" placeholder="__/__/__" style="width:110px"></div>
-      <div class="field-group"><div class="field-label">Room</div><input class="ef" id="f_room" type="text" placeholder="OR #" style="width:60px"></div>
-      <div class="field-group"><div class="field-label">Start Time</div><input class="ef" id="f_time" type="text" placeholder="00:00" style="width:110px"></div>
+    <div>
+      <div class="cf-label">Room</div>
+      <textarea class="cf-input ta" id="f_room" rows="1" placeholder="OR #" oninput="ar(this)"></textarea>
     </div>
-  </div>
-
-  <div class="case-bar">
-    <div class="field-group"><div class="field-label">Patient MRN</div><input class="ef" id="f_mrn" type="text"></div>
-    <div class="field-group"><div class="field-label">Age / Sex</div><input class="ef" id="f_age" type="text"></div>
-    <div class="field-group"><div class="field-label">Attending</div><input class="ef" id="f_attending" type="text"></div>
-    <div class="field-group"><div class="field-label">Procedure</div><input class="ef" id="f_procedure" type="text"></div>
-    <div class="field-group"><div class="field-label">Anesthesia</div><input class="ef" id="f_anesthesia" type="text"></div>
-    <div class="field-group"><div class="field-label">ASA Class</div><input class="ef" id="f_asa" type="text"></div>
-  </div>
-
-  <div class="main-grid">
-    <div class="body-col">
-      <div class="body-diagram-wrap">
-        <div class="diagram-top">
-          <div class="diagram-title">Port / Incision Placement</div>
-          <button class="dc-btn" onclick="clearCanvas()">✕ Clear</button>
-        </div>
-        <canvas id="bodyCanvas" width="500" height="900"></canvas>
-        <div class="port-legend">
-          <div class="port-legend-title">Port Key</div>
-          <div class="port-rows">
-            <div class="port-row"><div class="port-num">1</div><input class="ef" id="f_port1" type="text" placeholder="location / size"></div>
-            <div class="port-row"><div class="port-num">2</div><input class="ef" id="f_port2" type="text" placeholder="location / size"></div>
-            <div class="port-row"><div class="port-num">3</div><input class="ef" id="f_port3" type="text" placeholder="location / size"></div>
-            <div class="port-row"><div class="port-num">4</div><input class="ef" id="f_port4" type="text" placeholder="location / size"></div>
-            <div class="port-row"><div class="port-num">5</div><input class="ef" id="f_port5" type="text" placeholder="location / size"></div>
-          </div>
-        </div>
-      </div>
-      <div class="section">
-        <div class="section-head"><div class="section-title">Position &amp; Prep</div></div>
-        <div class="section-body">
-          <div class="line-row"><div class="line-label">Position</div><input class="ef" id="f_position" type="text"></div>
-          <div class="line-row"><div class="line-label">Prep</div><input class="ef" id="f_prep" type="text"></div>
-          <div class="line-row"><div class="line-label">Draping</div><input class="ef" id="f_draping" type="text"></div>
-          <div class="line-row"><div class="line-label">Foley</div><input class="ef" id="f_foley" type="text"></div>
-          <div class="line-row"><div class="line-label">NGT/OGT</div><input class="ef" id="f_ngt" type="text"></div>
-          <div class="line-row"><div class="line-label">Bovie Pad</div><input class="ef" id="f_bovie" type="text"></div>
-        </div>
-      </div>
+    <div>
+      <div class="cf-label">Start Time</div>
+      <textarea class="cf-input ta" id="f_time" rows="1" placeholder="07:30" oninput="ar(this)"></textarea>
     </div>
-
-    <!-- MIDDLE -->
-    <div style="display:flex;flex-direction:column;gap:9px;">
-      <div class="section">
-        <div class="section-head green-head"><div class="section-title green">Antibiotics &amp; Medications</div></div>
-        <div class="section-body">
-          <div class="med-grid" style="margin-bottom:3px;">
-            <div class="med-col-head">Drug</div><div class="med-col-head">Dose / Route</div><div class="med-col-head">Timing</div><div class="med-col-head" style="text-align:center">✓</div>
-          </div>
-          <div class="med-grid" style="row-gap:3px;">
-            <input class="ef" id="f_med1d" type="text"><input class="ef" id="f_med1r" type="text"><input class="ef" id="f_med1t" type="text"><div class="med-cb"><input type="checkbox" id="f_med1c"></div>
-            <input class="ef" id="f_med2d" type="text"><input class="ef" id="f_med2r" type="text"><input class="ef" id="f_med2t" type="text"><div class="med-cb"><input type="checkbox" id="f_med2c"></div>
-            <input class="ef" id="f_med3d" type="text"><input class="ef" id="f_med3r" type="text"><input class="ef" id="f_med3t" type="text"><div class="med-cb"><input type="checkbox" id="f_med3c"></div>
-            <input class="ef" id="f_med4d" type="text"><input class="ef" id="f_med4r" type="text"><input class="ef" id="f_med4t" type="text"><div class="med-cb"><input type="checkbox" id="f_med4c"></div>
-          </div>
-        </div>
-      </div>
-      <div class="section">
-        <div class="section-head"><div class="section-title">VTE Prophylaxis</div></div>
-        <div class="section-body">
-          <div class="check-grid">
-            <label class="check-item"><input type="checkbox" id="f_scd"> SCDs</label>
-            <label class="check-item"><input type="checkbox" id="f_hep"> Heparin SQ</label>
-            <label class="check-item"><input type="checkbox" id="f_lmwh"> Lovenox</label>
-            <label class="check-item"><input type="checkbox" id="f_ted"> TED Hose</label>
-            <label class="check-item"><input type="checkbox" id="f_holdac"> Hold anti-coag</label>
-            <label class="check-item"><input type="checkbox" id="f_vteo"><input class="ef" id="f_vte_other" type="text" placeholder="other" style="width:70px"></label>
-          </div>
-        </div>
-      </div>
-      <div class="section">
-        <div class="section-head"><div class="section-title">Instruments &amp; Equipment</div></div>
-        <div class="section-body">
-          <div class="check-grid" style="margin-bottom:5px;">
-            <label class="check-item"><input type="checkbox" id="f_lap"> Laparoscopic</label>
-            <label class="check-item"><input type="checkbox" id="f_rob"> Robotic</label>
-            <label class="check-item"><input type="checkbox" id="f_open"> Open</label>
-            <label class="check-item"><input type="checkbox" id="f_fluoro"> Fluoroscopy</label>
-            <label class="check-item"><input type="checkbox" id="f_harmonic"> Harmonic</label>
-            <label class="check-item"><input type="checkbox" id="f_ligasure"> LigaSure</label>
-            <label class="check-item"><input type="checkbox" id="f_stapler"> Stapler</label>
-            <label class="check-item"><input type="checkbox" id="f_endobag"> Endo bag</label>
-          </div>
-          <div class="line-row"><div class="line-label">Scope size</div><input class="ef" id="f_scope" type="text"></div>
-          <div class="line-row"><div class="line-label">Special req.</div><input class="ef" id="f_special" type="text"></div>
-        </div>
-      </div>
-      <div class="section">
-        <div class="section-head red-head"><div class="section-title red">Allergies / Alerts</div></div>
-        <div class="section-body"><textarea class="ef" id="f_allergies" rows="3" placeholder="List allergies and alerts..."></textarea></div>
-      </div>
-      <div class="section">
-        <div class="section-head"><div class="section-title">Specimens &amp; Pathology</div></div>
-        <div class="section-body">
-          <div class="spec-row"><div class="spec-label">Specimen 1</div><input class="ef" id="f_spec1" type="text"></div>
-          <div class="spec-row"><div class="spec-label">Specimen 2</div><input class="ef" id="f_spec2" type="text"></div>
-          <div class="spec-row"><div class="spec-label">Frozen?</div><input class="ef" id="f_frozen" type="text"></div>
-          <div style="margin-top:4px;" class="check-grid">
-            <label class="check-item"><input type="checkbox" id="f_perm"> Permanent</label>
-            <label class="check-item"><input type="checkbox" id="f_culture"> Culture</label>
-            <label class="check-item"><input type="checkbox" id="f_cyto"> Cytology</label>
-            <label class="check-item"><input type="checkbox" id="f_frozensec"> Frozen section</label>
-          </div>
-        </div>
-      </div>
+    <div>
+      <div class="cf-label">ASA Class</div>
+      <textarea class="cf-input ta" id="f_asa" rows="1" placeholder="I – V" oninput="ar(this)"></textarea>
     </div>
-
-    <!-- RIGHT -->
-    <div style="display:flex;flex-direction:column;gap:9px;">
-      <div class="section">
-        <div class="section-head gold-head"><div class="section-title gold">Attending Preferences</div></div>
-        <div class="section-body" style="padding:5px 7px;">
-          <table class="pref-table">
-            <tr><td>Suture (fascia)</td><td><input class="ef" id="f_sut_fascia" type="text"></td></tr>
-            <tr><td>Suture (skin)</td><td><input class="ef" id="f_sut_skin" type="text"></td></tr>
-            <tr><td>Closure pref.</td><td><input class="ef" id="f_closure" type="text"></td></tr>
-            <tr><td>Drain type</td><td><input class="ef" id="f_drain" type="text"></td></tr>
-            <tr><td>Dressing</td><td><input class="ef" id="f_dressing" type="text"></td></tr>
-            <tr><td>Glue/staples</td><td><input class="ef" id="f_glue" type="text"></td></tr>
-            <tr><td>Music / setup</td><td><input class="ef" id="f_music" type="text"></td></tr>
-            <tr><td>Other</td><td><input class="ef" id="f_pref_other" type="text"></td></tr>
-          </table>
-        </div>
-      </div>
-      <div class="section">
-        <div class="section-head"><div class="section-title">Post-op Orders</div></div>
-        <div class="section-body">
-          <div class="line-row"><div class="line-label">Diet</div><input class="ef" id="f_diet" type="text"></div>
-          <div class="line-row"><div class="line-label">Activity</div><input class="ef" id="f_activity" type="text"></div>
-          <div class="line-row"><div class="line-label">IVF</div><input class="ef" id="f_ivf" type="text"></div>
-          <div class="line-row"><div class="line-label">Pain mgmt</div><input class="ef" id="f_pain" type="text"></div>
-          <div class="line-row"><div class="line-label">Nausea</div><input class="ef" id="f_nausea" type="text"></div>
-          <div class="line-row"><div class="line-label">Disposition</div><input class="ef" id="f_dispo" type="text"></div>
-          <div style="margin-top:5px;" class="check-grid">
-            <label class="check-item"><input type="checkbox" id="f_admit"> Admit</label>
-            <label class="check-item"><input type="checkbox" id="f_obs"> Obs</label>
-            <label class="check-item"><input type="checkbox" id="f_dc"> Discharge</label>
-            <label class="check-item"><input type="checkbox" id="f_icu"> ICU</label>
-          </div>
-        </div>
-      </div>
-      <div class="section">
-        <div class="section-head"><div class="section-title">Operative Data</div></div>
-        <div class="section-body">
-          <div class="vitals-grid" style="margin-bottom:6px;">
-            <div class="vital-box"><div class="vital-label">Cut Time</div><input class="ef" id="f_cut" type="text"></div>
-            <div class="vital-box"><div class="vital-label">Close Time</div><input class="ef" id="f_close" type="text"></div>
-            <div class="vital-box"><div class="vital-label">Total Time</div><input class="ef" id="f_total" type="text"></div>
-            <div class="vital-box"><div class="vital-label">EBL (mL)</div><input class="ef" id="f_ebl" type="text"></div>
-            <div class="vital-box"><div class="vital-label">UOP (mL)</div><input class="ef" id="f_uop" type="text"></div>
-            <div class="vital-box"><div class="vital-label">Fluids In</div><input class="ef" id="f_fluids" type="text"></div>
-          </div>
-          <div class="line-row"><div class="line-label">Transfusion</div><input class="ef" id="f_transfusion" type="text"></div>
-          <div class="line-row"><div class="line-label">Cell saver</div><input class="ef" id="f_cellsaver" type="text"></div>
-        </div>
-      </div>
+    <div class="case-field-full">
+      <div class="cf-label">Patient MRN</div>
+      <textarea class="cf-input ta" id="f_mrn" rows="1" oninput="ar(this)"></textarea>
     </div>
-
-    <!-- BOTTOM FULL -->
-    <div style="grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:9px;">
-      <div class="section">
-        <div class="section-head"><div class="section-title">Miscellaneous Notes</div></div>
-        <div class="section-body"><textarea class="ef" id="f_misc" rows="5" placeholder="Free text notes..."></textarea></div>
-      </div>
-      <div class="section">
-        <div class="section-head red-head"><div class="section-title red">Intraop Events / Complications</div></div>
-        <div class="section-body"><textarea class="ef" id="f_intraop" rows="5" placeholder="Document any intraoperative events..."></textarea></div>
-      </div>
+    <div class="case-field-full">
+      <div class="cf-label">Age / Sex</div>
+      <textarea class="cf-input ta" id="f_age" rows="1" oninput="ar(this)"></textarea>
     </div>
-  </div>
-
-  <div class="footer">
-    <div class="footer-checks">
-      <label class="footer-check"><input type="checkbox" id="f_timeout"> Time-out completed</label>
-      <label class="footer-check"><input type="checkbox" id="f_counts"> Counts correct</label>
-      <label class="footer-check"><input type="checkbox" id="f_opnote"> Op note dictated</label>
-      <label class="footer-check"><input type="checkbox" id="f_family"> Family updated</label>
-      <label class="footer-check"><input type="checkbox" id="f_fellow"> Fellow/Res notified</label>
+    <div class="case-field-full">
+      <div class="cf-label">Attending</div>
+      <textarea class="cf-input ta" id="f_attending" rows="1" oninput="ar(this)"></textarea>
     </div>
-    <div class="footer-note">or-case-sheet · v4.0 · Google Sheets Edition</div>
+    <div class="case-field-full">
+      <div class="cf-label">Procedure</div>
+      <textarea class="cf-input ta" id="f_procedure" rows="1" oninput="ar(this)"></textarea>
+    </div>
+    <div class="case-field-full">
+      <div class="cf-label">Anesthesia Type</div>
+      <textarea class="cf-input ta" id="f_anesthesia" rows="1" oninput="ar(this)"></textarea>
+    </div>
   </div>
 </div>
-
+ 
+<!-- ── ALLERGIES (near top — safety critical) ── -->
+<div class="section-block">
+  <div class="section-label"><div class="sl-dot sl-red"></div><span class="section-label-text red">Allergies &amp; Alerts</span></div>
+  <textarea class="note-area" id="f_allergies" placeholder="List all allergies and important alerts here..." oninput="ar(this)"></textarea>
+</div>
+ 
+<!-- ── DIAGRAM ── -->
+<div class="section-block" id="s-diagram">
+  <div class="section-label"><div class="sl-dot sl-teal"></div><span class="section-label-text">Port / Incision Diagram</span><button onclick="openDiagInfo()" style="margin-left:auto;font-family:var(--mono);font-size:10px;padding:3px 8px;border-radius:5px;border:1px solid var(--rule);background:var(--surface2);color:var(--ink3);cursor:pointer;">? what saves</button></div>
+ 
+  <div class="dtab-bar">
+    <button class="dtab active" id="dt-library" onclick="switchDiagTab('library')">📂 Library</button>
+    <button class="dtab" id="dt-draw" onclick="switchDiagTab('draw')">✏️ Draw</button>
+    <button class="dtab" id="dt-ports" onclick="switchDiagTab('ports')">🔢 Port Key</button>
+  </div>
+ 
+  <!-- Library tab -->
+  <div class="dtab-pane active" id="dp-library">
+    <div class="lib-grid" id="libGrid"></div>
+    <div class="lib-import-row">
+      <button class="lib-import-btn" onclick="document.getElementById('libImgInput').click()">＋ Import Image (JPG/PNG)</button>
+      <button class="lib-import-btn" onclick="document.getElementById('libSvgInput').click()">＋ Import SVG</button>
+    </div>
+  </div>
+ 
+  <!-- Draw tab -->
+  <div class="dtab-pane" id="dp-draw">
+    <div class="canvas-header">
+      <span class="active-diag-name" id="activeDiagName">Anterior</span>
+      <button class="clear-btn" onclick="clearCanvas()">✕ Clear drawing</button>
+    </div>
+    <div class="canvas-tools">
+      <div class="ct-group">
+        <button class="tool-btn active" id="tPen" onclick="setTool('pen')">✏️</button>
+        <button class="tool-btn" id="tText" onclick="setTool('text')">T</button>
+        <button class="tool-btn" id="tCircle" onclick="setTool('circle')">○</button>
+        <button class="tool-btn" id="tCross" onclick="setTool('cross')">+</button>
+        <button class="tool-btn" id="tRect" onclick="setTool('rect')">▭</button>
+        <button class="tool-btn" id="tArrow" onclick="setTool('arrow')">→</button>
+        <button class="tool-btn" id="tErase" onclick="setTool('erase')">⌫</button>
+      </div>
+      <div class="ct-sep"></div>
+      <div class="ct-group">
+        <div class="cswatch active" style="background:#c0392b" id="sc_red" onclick="setColor('#c0392b','sc_red')"></div>
+        <div class="cswatch" style="background:#1a3a5c" id="sc_blue" onclick="setColor('#1a3a5c','sc_blue')"></div>
+        <div class="cswatch" style="background:#1d6a47" id="sc_green" onclick="setColor('#1d6a47','sc_green')"></div>
+        <div class="cswatch" style="background:#e67e22" id="sc_orange" onclick="setColor('#e67e22','sc_orange')"></div>
+        <div class="cswatch" style="background:#222" id="sc_black" onclick="setColor('#222','sc_black')"></div>
+      </div>
+      <div class="ct-sep"></div>
+      <div class="ct-group">
+        <button class="sz-btn active" id="sz1" onclick="setSize(2,'sz1')">·</button>
+        <button class="sz-btn" id="sz2" onclick="setSize(4,'sz2')">●</button>
+        <button class="sz-btn" id="sz3" onclick="setSize(8,'sz3')">⬤</button>
+      </div>
+    </div>
+    <canvas id="bodyCanvas" width="600" height="900"></canvas>
+  </div>
+ 
+  <!-- Port Key tab -->
+  <div class="dtab-pane" id="dp-ports">
+    <div class="port-legend">
+      <div class="port-legend-title">Label each port</div>
+      <div class="port-rows" id="portRows">
+        <div class="port-row"><div class="port-num">1</div><input class="port-input" id="f_port1" type="text" placeholder="location / size / type"></div>
+        <div class="port-row"><div class="port-num">2</div><input class="port-input" id="f_port2" type="text" placeholder="location / size / type"></div>
+        <div class="port-row"><div class="port-num">3</div><input class="port-input" id="f_port3" type="text" placeholder="location / size / type"></div>
+        <div class="port-row"><div class="port-num">4</div><input class="port-input" id="f_port4" type="text" placeholder="location / size / type"></div>
+        <div class="port-row"><div class="port-num">5</div><input class="port-input" id="f_port5" type="text" placeholder="location / size / type"></div>
+      </div>
+    </div>
+  </div>
+</div>
+ 
+<!-- ── POSITION & PREP ── -->
+<div class="section-block" id="s-prep">
+  <div class="section-label"><div class="sl-dot sl-blue"></div><span class="section-label-text blue">Position &amp; Prep</span></div>
+  <div class="field-rows">
+    <div class="field-row"><span class="fr-label">Position</span><textarea class="fr-input" id="f_position" rows="1" oninput="ar(this)"></textarea></div>
+    <div class="field-row"><span class="fr-label">Prep soln.</span><textarea class="fr-input" id="f_prep" rows="1" oninput="ar(this)"></textarea></div>
+    <div class="field-row"><span class="fr-label">Draping</span><textarea class="fr-input" id="f_draping" rows="1" oninput="ar(this)"></textarea></div>
+    <div class="field-row"><span class="fr-label">Foley</span><textarea class="fr-input" id="f_foley" rows="1" oninput="ar(this)"></textarea></div>
+    <div class="field-row"><span class="fr-label">NGT / OGT</span><textarea class="fr-input" id="f_ngt" rows="1" oninput="ar(this)"></textarea></div>
+    <div class="field-row"><span class="fr-label">Bovie pad</span><textarea class="fr-input" id="f_bovie" rows="1" oninput="ar(this)"></textarea></div>
+  </div>
+</div>
+ 
+<!-- ── ANTIBIOTICS & MEDS ── -->
+<div class="section-block" id="s-meds">
+  <div class="section-label"><div class="sl-dot sl-green"></div><span class="section-label-text green">Antibiotics &amp; Medications</span></div>
+  <div style="overflow-x:auto;">
+    <table class="med-table">
+      <thead><tr><th>Drug</th><th>Dose / Route</th><th>Timing</th><th style="width:36px">✓</th></tr></thead>
+      <tbody>
+        <tr><td><input class="med-input" id="f_m1d" type="text"></td><td><input class="med-input" id="f_m1r" type="text"></td><td><input class="med-input" id="f_m1t" type="text"></td><td><div class="med-cb"><input type="checkbox" id="f_m1c"></div></td></tr>
+        <tr><td><input class="med-input" id="f_m2d" type="text"></td><td><input class="med-input" id="f_m2r" type="text"></td><td><input class="med-input" id="f_m2t" type="text"></td><td><div class="med-cb"><input type="checkbox" id="f_m2c"></div></td></tr>
+        <tr><td><input class="med-input" id="f_m3d" type="text"></td><td><input class="med-input" id="f_m3r" type="text"></td><td><input class="med-input" id="f_m3t" type="text"></td><td><div class="med-cb"><input type="checkbox" id="f_m3c"></div></td></tr>
+        <tr><td><input class="med-input" id="f_m4d" type="text"></td><td><input class="med-input" id="f_m4r" type="text"></td><td><input class="med-input" id="f_m4t" type="text"></td><td><div class="med-cb"><input type="checkbox" id="f_m4c"></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="section-label" style="border-top:1px solid var(--rule);border-bottom:none;margin-top:2px;"><div class="sl-dot sl-blue"></div><span class="section-label-text">VTE Prophylaxis</span></div>
+  <div class="check-group">
+    <label class="check-item"><input type="checkbox" id="f_scd"> SCDs</label>
+    <label class="check-item"><input type="checkbox" id="f_hep"> Heparin SQ</label>
+    <label class="check-item"><input type="checkbox" id="f_lmwh"> Lovenox</label>
+    <label class="check-item"><input type="checkbox" id="f_ted"> TED Hose</label>
+    <label class="check-item"><input type="checkbox" id="f_holdac"> Hold anti-coag</label>
+  </div>
+</div>
+ 
+<!-- ── INSTRUMENTS ── -->
+<div class="section-block" id="s-instruments">
+  <div class="section-label"><div class="sl-dot sl-blue"></div><span class="section-label-text blue">Instruments &amp; Equipment</span></div>
+  <div class="check-group">
+    <label class="check-item"><input type="checkbox" id="f_lap"> Laparoscopic</label>
+    <label class="check-item"><input type="checkbox" id="f_rob"> Robotic</label>
+    <label class="check-item"><input type="checkbox" id="f_open"> Open</label>
+    <label class="check-item"><input type="checkbox" id="f_fluoro"> Fluoroscopy</label>
+    <label class="check-item"><input type="checkbox" id="f_harmonic"> Harmonic</label>
+    <label class="check-item"><input type="checkbox" id="f_ligasure"> LigaSure</label>
+    <label class="check-item"><input type="checkbox" id="f_stapler"> Stapler</label>
+    <label class="check-item"><input type="checkbox" id="f_endobag"> Endo bag</label>
+  </div>
+  <div class="field-rows">
+    <div class="field-row"><span class="fr-label">Scope size</span><textarea class="fr-input" id="f_scope" rows="1" oninput="ar(this)"></textarea></div>
+    <div class="field-row"><span class="fr-label">Special req.</span><textarea class="fr-input" id="f_special" rows="1" oninput="ar(this)"></textarea></div>
+  </div>
+</div>
+ 
+<!-- ── ATTENDING PREFERENCES ── -->
+<div class="section-block" id="s-attending">
+  <div class="section-label"><div class="sl-dot sl-amber"></div><span class="section-label-text amber">Attending Preferences</span></div>
+  <table class="pref-table">
+    <tr><td class="pt-label">Suture (fascia)</td><td><textarea class="pt-input" id="f_sf" rows="1" oninput="ar(this)"></textarea></td></tr>
+    <tr><td class="pt-label">Suture (skin)</td><td><textarea class="pt-input" id="f_ss" rows="1" oninput="ar(this)"></textarea></td></tr>
+    <tr><td class="pt-label">Closure</td><td><textarea class="pt-input" id="f_cl" rows="1" oninput="ar(this)"></textarea></td></tr>
+    <tr><td class="pt-label">Drain</td><td><textarea class="pt-input" id="f_dr" rows="1" oninput="ar(this)"></textarea></td></tr>
+    <tr><td class="pt-label">Dressing</td><td><textarea class="pt-input" id="f_ds" rows="1" oninput="ar(this)"></textarea></td></tr>
+    <tr><td class="pt-label">Glue/staples</td><td><textarea class="pt-input" id="f_gl" rows="1" oninput="ar(this)"></textarea></td></tr>
+    <tr><td class="pt-label">Music/setup</td><td><textarea class="pt-input" id="f_mu" rows="1" oninput="ar(this)"></textarea></td></tr>
+    <tr><td class="pt-label">Other</td><td><textarea class="pt-input" id="f_po" rows="1" oninput="ar(this)"></textarea></td></tr>
+  </table>
+</div>
+ 
+<!-- ── POST-OP ── -->
+<div class="section-block" id="s-postop">
+  <div class="section-label"><div class="sl-dot sl-purple"></div><span class="section-label-text">Post-op Orders</span></div>
+  <div class="field-rows">
+    <div class="field-row"><span class="fr-label">Diet</span><textarea class="fr-input" id="f_diet" rows="1" oninput="ar(this)"></textarea></div>
+    <div class="field-row"><span class="fr-label">Activity</span><textarea class="fr-input" id="f_activity" rows="1" oninput="ar(this)"></textarea></div>
+    <div class="field-row"><span class="fr-label">IVF</span><textarea class="fr-input" id="f_ivf" rows="1" oninput="ar(this)"></textarea></div>
+    <div class="field-row"><span class="fr-label">Pain mgmt</span><textarea class="fr-input" id="f_pain" rows="1" oninput="ar(this)"></textarea></div>
+    <div class="field-row"><span class="fr-label">Nausea</span><textarea class="fr-input" id="f_nausea" rows="1" oninput="ar(this)"></textarea></div>
+    <div class="field-row"><span class="fr-label">Disposition</span><textarea class="fr-input" id="f_dispo" rows="1" oninput="ar(this)"></textarea></div>
+  </div>
+  <div class="check-group">
+    <label class="check-item"><input type="checkbox" id="f_admit"> Admit</label>
+    <label class="check-item"><input type="checkbox" id="f_obs"> Obs</label>
+    <label class="check-item"><input type="checkbox" id="f_dc"> Discharge</label>
+    <label class="check-item"><input type="checkbox" id="f_icu"> ICU</label>
+  </div>
+</div>
+ 
+<!-- ── OPERATIVE DATA ── -->
+<div class="section-block" id="s-opdata">
+  <div class="section-label"><div class="sl-dot sl-blue"></div><span class="section-label-text blue">Operative Data</span></div>
+  <div class="vitals-grid">
+    <div class="vital-cell"><div class="vital-label">Cut Time</div><input class="vital-input" id="f_cut" type="text"></div>
+    <div class="vital-cell"><div class="vital-label">Close Time</div><input class="vital-input" id="f_close" type="text"></div>
+    <div class="vital-cell"><div class="vital-label">Total Time</div><input class="vital-input" id="f_total" type="text"></div>
+    <div class="vital-cell"><div class="vital-label">EBL (mL)</div><input class="vital-input" id="f_ebl" type="text"></div>
+    <div class="vital-cell"><div class="vital-label">UOP (mL)</div><input class="vital-input" id="f_uop" type="text"></div>
+    <div class="vital-cell"><div class="vital-label">Fluids In</div><input class="vital-input" id="f_fluids" type="text"></div>
+  </div>
+  <div class="field-rows">
+    <div class="field-row"><span class="fr-label">Transfusion</span><textarea class="fr-input" id="f_transfusion" rows="1" oninput="ar(this)"></textarea></div>
+    <div class="field-row"><span class="fr-label">Cell saver</span><textarea class="fr-input" id="f_cellsaver" rows="1" oninput="ar(this)"></textarea></div>
+  </div>
+</div>
+ 
+<!-- ── SPECIMENS ── -->
+<div class="section-block" id="s-specimens">
+  <div class="section-label"><div class="sl-dot sl-teal"></div><span class="section-label-text">Specimens &amp; Pathology</span></div>
+  <div class="field-rows">
+    <div class="field-row"><span class="fr-label">Specimen 1</span><textarea class="fr-input" id="f_spec1" rows="1" oninput="ar(this)"></textarea></div>
+    <div class="field-row"><span class="fr-label">Specimen 2</span><textarea class="fr-input" id="f_spec2" rows="1" oninput="ar(this)"></textarea></div>
+    <div class="field-row"><span class="fr-label">Frozen?</span><textarea class="fr-input" id="f_frozen" rows="1" oninput="ar(this)"></textarea></div>
+  </div>
+  <div class="check-group">
+    <label class="check-item"><input type="checkbox" id="f_perm"> Permanent</label>
+    <label class="check-item"><input type="checkbox" id="f_culture"> Culture</label>
+    <label class="check-item"><input type="checkbox" id="f_cyto"> Cytology</label>
+    <label class="check-item"><input type="checkbox" id="f_frzn"> Frozen section</label>
+  </div>
+</div>
+ 
+<!-- ── NOTES ── -->
+<div class="section-block" id="s-notes">
+  <div class="section-label"><div class="sl-dot sl-blue"></div><span class="section-label-text blue">Misc Notes</span></div>
+  <textarea class="note-area" id="f_misc" placeholder="Free-form notes..." oninput="ar(this)"></textarea>
+  <div style="border-top:1px solid var(--rule);">
+    <div class="section-label" style="border-bottom:none;"><div class="sl-dot sl-red"></div><span class="section-label-text red">Intraop Events / Complications</span></div>
+    <textarea class="note-area" id="f_intraop" placeholder="Document any intraoperative events or complications..." oninput="ar(this)"></textarea>
+  </div>
+</div>
+ 
+<!-- ── CHECKLIST ── -->
+<div class="section-block" id="s-checklist">
+  <div class="section-label"><div class="sl-dot sl-green"></div><span class="section-label-text green">Final Checklist</span></div>
+  <div class="checklist-row"><input type="checkbox" id="f_timeout"><label for="f_timeout">Time-out completed</label></div>
+  <div class="checklist-row"><input type="checkbox" id="f_counts"><label for="f_counts">Counts correct</label></div>
+  <div class="checklist-row"><input type="checkbox" id="f_opnote"><label for="f_opnote">Op note dictated</label></div>
+  <div class="checklist-row"><input type="checkbox" id="f_family"><label for="f_family">Family updated</label></div>
+  <div class="checklist-row"><input type="checkbox" id="f_fellow"><label for="f_fellow">Fellow / Resident notified</label></div>
+</div>
+ 
+<!-- bottom padding for strip -->
+<div style="height:90px;"></div>
+</div><!-- end scroll-body -->
+ 
+<!-- BOTTOM SAVE STRIP -->
+<div class="save-strip">
+  <button class="strip-btn strip-save" onclick="saveToSheets()">📊 Save to Sheets</button>
+  <button class="strip-btn strip-pdf" onclick="doPrint()">🖨 PDF</button>
+  <button class="strip-btn strip-new" onclick="newCase()">＋ New</button>
+  <button class="strip-btn strip-setup" onclick="openSetup()">⚙</button>
+</div>
+ 
 <script>
+// ══════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════
+function ar(el){el.style.height='auto';el.style.height=el.scrollHeight+'px';}
+function gv(id){const el=document.getElementById(id);if(!el)return '';return el.type==='checkbox'?el.checked:(el.value||'');}
+ 
+window.addEventListener('load',()=>{
+  document.querySelectorAll('textarea').forEach(el=>ar(el));
+  initCanvas();
+  loadConfig();
+  loadLibrary();
+  initScrollSpy();
+  // Modal overlay close handlers — must be inside load so DOM exists
+  document.getElementById('setupModal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeSetup();});
+  document.getElementById('diagInfoModal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeDiagInfo();});
+  document.getElementById('newCaseModal').addEventListener('click',e=>{if(e.target===e.currentTarget)cancelNewCase();});
+  document.getElementById('saveErrModal').addEventListener('click',e=>{if(e.target===e.currentTarget)document.getElementById('saveErrModal').classList.remove('open');});
+});
+ 
+// ══════════════════════════════════════════
+// SCROLL SPY — highlight active nav pill
+// ══════════════════════════════════════════
+const sections = ['s-case','s-diagram','s-prep','s-meds','s-instruments','s-attending','s-postop','s-opdata','s-specimens','s-notes','s-checklist'];
+function initScrollSpy(){
+  const obs = new IntersectionObserver(entries=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting){
+        const id = e.target.id;
+        document.querySelectorAll('.nav-pill').forEach((p,i)=>{
+          p.classList.toggle('active', sections[i]===id);
+        });
+        // scroll nav pill into view
+        const idx = sections.indexOf(id);
+        if(idx>=0){
+          const pill = document.querySelectorAll('.nav-pill')[idx];
+          if(pill) pill.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+        }
+      }
+    });
+  },{rootMargin:'-40% 0px -55% 0px'});
+  sections.forEach(id=>{const el=document.getElementById(id);if(el)obs.observe(el);});
+}
+function navScrollTo(id){
+  const el=document.getElementById(id);if(!el)return;
+  const offset=document.querySelector('.section-nav').offsetHeight+document.querySelector('.app-header').offsetHeight;
+  window.scrollTo({top:el.offsetTop-offset-8,behavior:'smooth'});
+}
+ 
 // ══════════════════════════════════════════
 // CONFIG
 // ══════════════════════════════════════════
-let SCRIPT_URL = localStorage.getItem('orSheetScriptUrl') || '';
-let USER_NAME  = localStorage.getItem('orSheetUserName') || '';
-
-function updateStatusIndicator() {
-  const el = document.getElementById('sheetsStatus');
-  const banner = document.getElementById('setupBanner');
-  if (SCRIPT_URL) {
-    el.textContent = '✓ Sheets connected';
-    el.className = 'sheets-status ok';
-    banner.classList.add('hidden');
-    document.getElementById('mainPage').classList.remove('with-banner');
-  } else {
-    el.textContent = '⚙ Not configured';
-    el.className = 'sheets-status';
-    document.getElementById('mainPage').classList.add('with-banner');
+ 
+// ─── PASTE YOUR APPS SCRIPT URL HERE ───────────────────────────────────────
+// Replace the empty string with your deployed Web App URL so you never have
+// to enter it manually. The URL looks like:
+//   https://script.google.com/macros/s/AKfycb.../exec
+const EMBEDDED_SCRIPT_URL = '';   // ← paste between these quotes
+const EMBEDDED_USER_NAME  = '';   // ← optionally set your name here too
+// ───────────────────────────────────────────────────────────────────────────
+ 
+let SCRIPT_URL='', USER_NAME='';
+function loadConfig(){
+  // Embedded URL takes priority; falls back to localStorage for manual entry
+  SCRIPT_URL = EMBEDDED_SCRIPT_URL || localStorage.getItem('orUrl') || '';
+  USER_NAME  = EMBEDDED_USER_NAME  || localStorage.getItem('orUser') || '';
+  const dot=document.getElementById('statusDot');
+  dot.classList.toggle('ok',!!SCRIPT_URL);
+  // If embedded, hide the setup button clutter since it's already configured
+  if(EMBEDDED_SCRIPT_URL){
+    document.getElementById('statusDot').title='Sheets connected (embedded)';
   }
 }
-
-function saveConfig() {
-  const url = document.getElementById('configUrl').value.trim();
-  const name = document.getElementById('configName').value.trim();
-  if (!url || !url.includes('script.google.com')) {
-    showToast('Please enter a valid Apps Script URL', 'error'); return;
-  }
-  SCRIPT_URL = url; USER_NAME = name;
-  localStorage.setItem('orSheetScriptUrl', url);
-  localStorage.setItem('orSheetUserName', name);
-  updateStatusIndicator();
-  closeConfigModal();
-  showToast('✓ Configuration saved!', 'success');
+function saveConfig(){
+  const u=document.getElementById('cfgUrl').value.trim();
+  if(!u||!u.includes('script.google.com')){toast('Enter a valid Apps Script URL','err');return;}
+  SCRIPT_URL=u; USER_NAME=document.getElementById('cfgName').value.trim();
+  localStorage.setItem('orUrl',SCRIPT_URL); localStorage.setItem('orUser',USER_NAME);
+  loadConfig(); closeSetup(); toast('✓ Saved','ok');
 }
-
-function openConfigModal() {
-  document.getElementById('configUrl').value = SCRIPT_URL;
-  document.getElementById('configName').value = USER_NAME;
-  document.getElementById('configModal').classList.add('open');
+function openSetup(){document.getElementById('cfgUrl').value=SCRIPT_URL;document.getElementById('cfgName').value=USER_NAME;document.getElementById('setupModal').classList.add('open');}
+function closeSetup(){document.getElementById('setupModal').classList.remove('open');}
+ 
+// ══════════════════════════════════════════
+// DIAGRAM TABS
+// ══════════════════════════════════════════
+function switchDiagTab(t){
+  ['library','draw','ports'].forEach(id=>{
+    document.getElementById('dt-'+id).classList.toggle('active',id===t);
+    document.getElementById('dp-'+id).classList.toggle('active',id===t);
+  });
+  if(t==='draw') resizeCanvas();
 }
-function closeConfigModal() { document.getElementById('configModal').classList.remove('open'); }
-
+ 
 // ══════════════════════════════════════════
-// CANVAS
+// DIAGRAM LIBRARY
 // ══════════════════════════════════════════
-const canvas = document.getElementById('bodyCanvas');
-const ctx = canvas.getContext('2d');
-let currentTool='pen', currentColor='#c0392b', currentSize=2;
-let isDrawing=false, lastX=0, lastY=0;
-
-function drawBodyOutline() {
-  const W=canvas.width, H=canvas.height, sx=W/130, sy=H/290;
-  ctx.save(); ctx.scale(sx,sy);
-  ctx.strokeStyle='#1a3a5c'; ctx.lineWidth=1.4/Math.min(sx,sy); ctx.fillStyle='#f0eee9'; ctx.lineCap='round'; ctx.lineJoin='round';
-  ctx.beginPath(); ctx.ellipse(65,22,18,21,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
-  ctx.beginPath(); ctx.roundRect(58,41,14,10,2); ctx.fill(); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(38,51); ctx.bezierCurveTo(28,55,26,70,24,115); ctx.quadraticCurveTo(24,122,30,122); ctx.lineTo(100,122); ctx.quadraticCurveTo(106,122,106,115); ctx.bezierCurveTo(104,70,102,55,92,51); ctx.closePath(); ctx.fill(); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(58,51); ctx.quadraticCurveTo(48,48,38,51); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(72,51); ctx.quadraticCurveTo(82,48,92,51); ctx.stroke();
-  ctx.save(); ctx.setLineDash([3,2]); ctx.strokeStyle='#8a9ab0'; ctx.lineWidth=0.8/Math.min(sx,sy);
-  ctx.beginPath(); ctx.moveTo(65,51); ctx.lineTo(65,135); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(30,95); ctx.quadraticCurveTo(48,105,65,102); ctx.quadraticCurveTo(82,105,100,95); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(30,135); ctx.quadraticCurveTo(47,145,65,144); ctx.quadraticCurveTo(83,145,100,135); ctx.stroke();
+const BUILTIN = [
+  {id:'anterior', label:'Anterior',  fn:drawAnterior},
+  {id:'lateral',  label:'Lateral',   fn:drawLateral},
+  {id:'prone',    label:'Prone',     fn:drawProne},
+  {id:'headneck', label:'Head/Neck', fn:drawHeadNeck},
+  {id:'extremity',label:'Extremity', fn:drawExtremity},
+];
+let customDiagrams=[], activeDiagId='anterior';
+ 
+function loadLibrary(){
+  try{customDiagrams=JSON.parse(localStorage.getItem('orLibrary')||'[]');}catch(e){customDiagrams=[];}
+  renderLibrary();
+  setActiveDiagram('anterior');
+}
+function saveLibStorage(){
+  try{localStorage.setItem('orLibrary',JSON.stringify(customDiagrams));}
+  catch(e){toast('Storage full — use a smaller image','err');}
+}
+function renderLibrary(){
+  const grid=document.getElementById('libGrid'); grid.innerHTML='';
+  BUILTIN.forEach(d=>{
+    const tc=document.createElement('canvas'); tc.width=120; tc.height=180;
+    const tctx=tc.getContext('2d'); tctx.fillStyle='#fff'; tctx.fillRect(0,0,120,180); d.fn(tctx,120,180);
+    const item=document.createElement('div'); item.className='lib-item'+(d.id===activeDiagId?' active':'');
+    item.innerHTML=`<img class="lib-thumb" src="${tc.toDataURL()}" alt="${d.label}"><div class="lib-name">${d.label}</div>`;
+    item.onclick=()=>setActiveDiagram(d.id);
+    grid.appendChild(item);
+  });
+  customDiagrams.forEach((d,i)=>{
+    const item=document.createElement('div'); item.className='lib-item'+(d.id===activeDiagId?' active':'');
+    // SVGs render as img directly; raster images too
+    const imgTag=`<img class="lib-thumb" src="${d.src}" alt="${d.label}">`;
+    item.innerHTML=`${imgTag}<div class="lib-name">${d.label}</div><button class="lib-del" onclick="delCustom(${i});event.stopPropagation()">×</button>`;
+    item.onclick=()=>setActiveDiagramCustom(d.id);
+    grid.appendChild(item);
+  });
+}
+function setActiveDiagram(id){
+  activeDiagId=id;
+  const d=BUILTIN.find(x=>x.id===id); if(!d)return;
+  document.getElementById('activeDiagName').textContent=d.label;
+  const bc=document.getElementById('bodyCanvas');
+  const ctx=bc.getContext('2d');
+  ctx.fillStyle='#fff'; ctx.fillRect(0,0,bc.width,bc.height);
+  d.fn(ctx,bc.width,bc.height);
+  renderLibrary();
+}
+function setActiveDiagramCustom(id){
+  activeDiagId=id;
+  const d=customDiagrams.find(x=>x.id===id); if(!d)return;
+  document.getElementById('activeDiagName').textContent=d.label;
+  const bc=document.getElementById('bodyCanvas');
+  const ctx=bc.getContext('2d');
+  const img=new Image();
+  img.onload=()=>{ctx.fillStyle='#fff';ctx.fillRect(0,0,bc.width,bc.height);ctx.drawImage(img,0,0,bc.width,bc.height);};
+  img.src=d.src;
+  renderLibrary();
+}
+function delCustom(i){
+  if(!confirm('Remove this diagram?'))return;
+  customDiagrams.splice(i,1); saveLibStorage();
+  if(activeDiagId===customDiagrams[i]?.id){setActiveDiagram('anterior');}
+  else{renderLibrary();}
+}
+ 
+// ── Import raster image ──
+function importImage(e){
+  const file=e.target.files[0]; if(!file)return;
+  const name=prompt('Name this diagram:',file.name.replace(/\.[^.]+$/,''))||file.name;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const img=new Image(); img.onload=()=>{
+      const maxW=900,sc=Math.min(1,maxW/img.width);
+      const tc=document.createElement('canvas'); tc.width=Math.round(img.width*sc); tc.height=Math.round(img.height*sc);
+      tc.getContext('2d').drawImage(img,0,0,tc.width,tc.height);
+      const src=tc.toDataURL('image/jpeg',0.82);
+      const id='ci_'+Date.now();
+      customDiagrams.push({id,label:name,src,type:'raster'});
+      saveLibStorage(); renderLibrary(); setActiveDiagramCustom(id);
+      toast('✓ Imported: '+name,'ok');
+    };
+    img.src=ev.target.result;
+  };
+  reader.readAsDataURL(file); e.target.value='';
+}
+ 
+// ── Import SVG ──
+function importSVG(e){
+  const file=e.target.files[0]; if(!file)return;
+  const name=prompt('Name this diagram:',file.name.replace(/\.svg$/i,''))||file.name;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    // Store as data URL — SVGs can be used as img src directly
+    const svgText=ev.target.result;
+    const blob=new Blob([svgText],{type:'image/svg+xml'});
+    const src=URL.createObjectURL(blob);
+    // Also store the raw SVG text so it persists in localStorage
+    const b64='data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(svgText)));
+    const id='sv_'+Date.now();
+    customDiagrams.push({id,label:name,src:b64,type:'svg'});
+    saveLibStorage(); renderLibrary(); setActiveDiagramCustom(id);
+    toast('✓ SVG imported: '+name,'ok');
+  };
+  reader.readAsText(file); e.target.value='';
+}
+ 
+// ══════════════════════════════════════════
+// CANVAS DRAWING
+// ══════════════════════════════════════════
+const bc=document.getElementById('bodyCanvas');
+const ctx=bc.getContext('2d');
+let tool='pen',color='#c0392b',brushSize=2;
+let drawing=false,lx=0,ly=0,sx=0,sy=0,snap=null;
+ 
+function resizeCanvas(){
+  const w=bc.parentElement.clientWidth;
+  const aspect=bc.height/bc.width;
+  bc.style.width=w+'px';
+  bc.style.height=(w*aspect)+'px';
+}
+function initCanvas(){
+  ctx.fillStyle='#fff'; ctx.fillRect(0,0,bc.width,bc.height);
+  drawAnterior(ctx,bc.width,bc.height);
+  resizeCanvas();
+}
+window.addEventListener('resize',resizeCanvas);
+ 
+function getP(e,cnv){
+  const r=cnv.getBoundingClientRect(),scx=cnv.width/r.width,scy=cnv.height/r.height;
+  const cx=e.touches?e.touches[0].clientX:e.clientX,cy=e.touches?e.touches[0].clientY:e.clientY;
+  return{x:(cx-r.left)*scx,y:(cy-r.top)*scy};
+}
+function drawShape(ctx,t,x0,y0,x1,y1,c,s){
+  ctx.strokeStyle=c;ctx.lineWidth=s;ctx.lineCap='round';
+  if(t==='circle'){ctx.fillStyle=c+'22';const rx=Math.abs(x1-x0)/2||8,ry=Math.abs(y1-y0)/2||8,cx=(x0+x1)/2,cy=(y0+y1)/2;ctx.beginPath();ctx.ellipse(cx,cy,rx,ry,0,0,Math.PI*2);ctx.fill();ctx.stroke();}
+  else if(t==='rect'){ctx.fillStyle=c+'22';ctx.beginPath();ctx.rect(x0,y0,x1-x0,y1-y0);ctx.fill();ctx.stroke();}
+  else if(t==='cross'){const mx=(x0+x1)/2,my=(y0+y1)/2,hw=Math.max(Math.abs(x1-x0)/2,14),hh=Math.max(Math.abs(y1-y0)/2,14);ctx.beginPath();ctx.moveTo(mx-hw,my);ctx.lineTo(mx+hw,my);ctx.stroke();ctx.beginPath();ctx.moveTo(mx,my-hh);ctx.lineTo(mx,my+hh);ctx.stroke();}
+  else if(t==='arrow'){const a=Math.atan2(y1-y0,x1-x0),L=14;ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(x1,y1);ctx.stroke();ctx.fillStyle=c;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x1-L*Math.cos(a-0.45),y1-L*Math.sin(a-0.45));ctx.lineTo(x1-L*Math.cos(a+0.45),y1-L*Math.sin(a+0.45));ctx.closePath();ctx.fill();}
+}
+ 
+bc.addEventListener('mousedown',bS);bc.addEventListener('mousemove',bM);bc.addEventListener('mouseup',bE);bc.addEventListener('mouseleave',bE);
+bc.addEventListener('touchstart',e=>{e.preventDefault();bS(e);},{passive:false});
+bc.addEventListener('touchmove',e=>{e.preventDefault();bM(e);},{passive:false});
+bc.addEventListener('touchend',bE);
+ 
+function bS(e){
+  const p=getP(e,bc);
+  if(tool==='text'){const t=prompt('Label:');if(t){ctx.font='bold 14px IBM Plex Sans,sans-serif';ctx.fillStyle=color;ctx.fillText(t,p.x,p.y);}return;}
+  drawing=true;lx=sx=p.x;ly=sy=p.y;
+  if(['circle','rect','cross','arrow'].includes(tool))snap=ctx.getImageData(0,0,bc.width,bc.height);
+}
+function bM(e){
+  if(!drawing)return;const p=getP(e,bc);
+  if(tool==='pen'){ctx.globalCompositeOperation='source-over';ctx.beginPath();ctx.strokeStyle=color;ctx.lineWidth=brushSize;ctx.lineCap='round';ctx.moveTo(lx,ly);ctx.lineTo(p.x,p.y);ctx.stroke();lx=p.x;ly=p.y;}
+  else if(tool==='erase'){ctx.globalCompositeOperation='destination-out';ctx.beginPath();ctx.arc(p.x,p.y,brushSize*5,0,Math.PI*2);ctx.fill();lx=p.x;ly=p.y;}
+  else if(snap){ctx.globalCompositeOperation='source-over';ctx.putImageData(snap,0,0);drawShape(ctx,tool,sx,sy,p.x,p.y,color,brushSize);}
+}
+function bE(){drawing=false;ctx.globalCompositeOperation='source-over';snap=null;}
+ 
+function clearCanvas(){
+  ctx.globalCompositeOperation='source-over';ctx.fillStyle='#fff';ctx.fillRect(0,0,bc.width,bc.height);
+  const d=BUILTIN.find(x=>x.id===activeDiagId);
+  if(d){d.fn(ctx,bc.width,bc.height);}
+  else{const cd=customDiagrams.find(x=>x.id===activeDiagId);if(cd){const img=new Image();img.onload=()=>ctx.drawImage(img,0,0,bc.width,bc.height);img.src=cd.src;}}
+}
+function setTool(t){tool=t;document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active'));const el=document.getElementById('t'+t.charAt(0).toUpperCase()+t.slice(1));if(el)el.classList.add('active');bc.style.cursor=t==='erase'?'cell':t==='text'?'text':'crosshair';}
+function setColor(c,id){color=c;document.querySelectorAll('.cswatch').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+function setSize(s,id){brushSize=s;document.querySelectorAll('.sz-btn').forEach(b=>b.classList.remove('active'));document.getElementById(id).classList.add('active');}
+ 
+// ══════════════════════════════════════════
+// BUILT-IN DIAGRAM DRAWERS
+// ══════════════════════════════════════════
+function figS(ctx,W,H){ctx.fillStyle='#f5f0ea';ctx.strokeStyle='#2c3e50';ctx.lineWidth=Math.max(1,1.4*W/200);ctx.lineCap='round';ctx.lineJoin='round';}
+function drawAnterior(ctx,W,H){
+  const sx=W/200,sy=H/320;ctx.save();ctx.scale(sx,sy);figS(ctx,W,H);const lw=ctx.lineWidth/Math.min(sx,sy);ctx.lineWidth=lw;
+  ctx.beginPath();ctx.ellipse(100,18,14,17,0,0,Math.PI*2);ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(89,25);ctx.quadraticCurveTo(86,33,100,36);ctx.quadraticCurveTo(114,33,111,25);ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.ellipse(86,20,3,5,0.2,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.beginPath();ctx.ellipse(114,20,3,5,-0.2,0,Math.PI*2);ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(93,34);ctx.lineTo(91,44);ctx.lineTo(109,44);ctx.lineTo(107,34);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(91,44);ctx.lineTo(70,50);ctx.lineTo(58,56);ctx.lineTo(55,105);ctx.lineTo(57,132);ctx.quadraticCurveTo(60,142,69,145);ctx.lineTo(95,147);ctx.lineTo(100,149);ctx.lineTo(105,147);ctx.lineTo(131,145);ctx.quadraticCurveTo(140,142,143,132);ctx.lineTo(145,105);ctx.lineTo(142,56);ctx.lineTo(130,50);ctx.lineTo(109,44);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.strokeStyle='#8a9ab0';ctx.lineWidth=0.8*lw;
+  ctx.beginPath();ctx.moveTo(91,46);ctx.quadraticCurveTo(78,46,70,50);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(109,46);ctx.quadraticCurveTo(122,46,130,50);ctx.stroke();
+  ctx.setLineDash([3,2]);ctx.lineWidth=0.7*lw;
+  ctx.beginPath();ctx.moveTo(100,44);ctx.lineTo(100,147);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(58,97);ctx.quadraticCurveTo(79,110,100,107);ctx.quadraticCurveTo(121,110,142,97);ctx.stroke();
+  ctx.setLineDash([]);ctx.strokeStyle='#2c3e50';ctx.lineWidth=lw;
+  ctx.beginPath();ctx.arc(100,120,2.5,0,Math.PI*2);ctx.stroke();
+  ctx.fillStyle='#f5f0ea';
+  ctx.beginPath();ctx.moveTo(58,56);ctx.bezierCurveTo(44,62,38,82,38,102);ctx.lineTo(38,114);ctx.bezierCurveTo(38,118,42,120,46,120);ctx.lineTo(52,120);ctx.bezierCurveTo(56,120,58,118,58,114);ctx.lineTo(58,100);ctx.bezierCurveTo(57,82,57,64,58,58);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(142,56);ctx.bezierCurveTo(156,62,162,82,162,102);ctx.lineTo(162,114);ctx.bezierCurveTo(162,118,158,120,154,120);ctx.lineTo(148,120);ctx.bezierCurveTo(144,120,142,118,142,114);ctx.lineTo(142,100);ctx.bezierCurveTo(143,82,143,64,142,58);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(38,114);ctx.bezierCurveTo(34,128,34,140,36,152);ctx.lineTo(41,152);ctx.bezierCurveTo(41,140,43,128,46,120);ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(46,120);ctx.bezierCurveTo(50,130,52,140,52,152);ctx.lineTo(57,152);ctx.bezierCurveTo(57,140,57,128,58,114);ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(162,114);ctx.bezierCurveTo(166,128,166,140,164,152);ctx.lineTo(159,152);ctx.bezierCurveTo(159,140,157,128,154,120);ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(154,120);ctx.bezierCurveTo(150,130,148,140,148,152);ctx.lineTo(143,152);ctx.bezierCurveTo(143,140,143,128,142,114);ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.ellipse(46,157,7,6,0,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.beginPath();ctx.ellipse(154,157,7,6,0,0,Math.PI*2);ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(69,145);ctx.bezierCurveTo(63,162,61,178,62,198);ctx.lineTo(62,212);ctx.lineTo(80,212);ctx.lineTo(80,198);ctx.bezierCurveTo(80,178,82,162,95,147);ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(131,145);ctx.bezierCurveTo(137,162,139,178,138,198);ctx.lineTo(138,212);ctx.lineTo(120,212);ctx.lineTo(120,198);ctx.bezierCurveTo(120,178,118,162,105,147);ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(62,212);ctx.bezierCurveTo(60,230,62,248,64,262);ctx.lineTo(70,264);ctx.lineTo(76,264);ctx.lineTo(80,262);ctx.bezierCurveTo(80,248,80,230,80,212);ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(138,212);ctx.bezierCurveTo(140,230,138,248,136,262);ctx.lineTo(130,264);ctx.lineTo(124,264);ctx.lineTo(120,262);ctx.bezierCurveTo(120,248,120,230,120,212);ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(64,262);ctx.bezierCurveTo(58,268,55,273,57,277);ctx.lineTo(80,277);ctx.bezierCurveTo(82,272,81,266,80,262);ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(136,262);ctx.bezierCurveTo(142,268,145,273,143,277);ctx.lineTo(120,277);ctx.bezierCurveTo(118,272,119,266,120,262);ctx.fill();ctx.stroke();
+  ctx.font=`${Math.max(5,6/Math.min(sx,sy))}px IBM Plex Mono,monospace`;ctx.fillStyle='#8a9ab0';ctx.textAlign='center';ctx.fillText('ANTERIOR',100,7);
   ctx.restore();
-  ctx.beginPath(); ctx.arc(65,108,2.5,0,Math.PI*2); ctx.strokeStyle='#1a3a5c'; ctx.lineWidth=1/Math.min(sx,sy); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(38,51); ctx.bezierCurveTo(22,56,18,80,20,100); ctx.lineTo(28,98); ctx.bezierCurveTo(26,88,28,74,38,58); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(92,51); ctx.bezierCurveTo(108,56,112,80,110,100); ctx.lineTo(102,98); ctx.bezierCurveTo(104,88,102,74,92,58); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(20,100); ctx.bezierCurveTo(14,115,15,128,15,128); ctx.lineTo(23,126); ctx.bezierCurveTo(22,115,28,98,28,98); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(110,100); ctx.bezierCurveTo(116,115,115,128,115,128); ctx.lineTo(107,126); ctx.bezierCurveTo(108,115,102,98,102,98); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(24,115); ctx.bezierCurveTo(24,130,30,135,38,138); ctx.bezierCurveTo(52,142,65,142,65,142); ctx.bezierCurveTo(78,142,92,138,100,135); ctx.bezierCurveTo(106,130,106,115,106,115); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(38,138); ctx.bezierCurveTo(34,160,34,180,36,215); ctx.lineTo(50,215); ctx.bezierCurveTo(50,200,48,160,50,142); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(92,138); ctx.bezierCurveTo(96,160,96,180,94,215); ctx.lineTo(80,215); ctx.bezierCurveTo(80,200,82,160,80,142); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(36,215); ctx.bezierCurveTo(34,235,36,252,40,260); ctx.lineTo(48,260); ctx.bezierCurveTo(50,258,52,235,50,215); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(94,215); ctx.bezierCurveTo(96,235,94,252,90,260); ctx.lineTo(82,260); ctx.bezierCurveTo(80,258,78,235,80,215); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(37,260); ctx.bezierCurveTo(33,265,32,270,36,273); ctx.lineTo(50,273); ctx.bezierCurveTo(54,273,52,268,50,260); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(93,260); ctx.bezierCurveTo(97,265,98,270,94,273); ctx.lineTo(80,273); ctx.bezierCurveTo(76,273,78,268,80,260); ctx.stroke();
-  ctx.font=`${6/Math.min(sx,sy)}px DM Mono,monospace`; ctx.fillStyle='#8a9ab0'; ctx.textAlign='center'; ctx.fillText('ANTERIOR',65,14);
+}
+function drawLateral(ctx,W,H){
+  const sx=W/160,sy=H/310;ctx.save();ctx.scale(sx,sy);figS(ctx,W,H);const lw=ctx.lineWidth/Math.min(sx,sy);ctx.lineWidth=lw;
+  ctx.beginPath();ctx.moveTo(90,6);ctx.bezierCurveTo(112,4,120,12,120,22);ctx.bezierCurveTo(120,34,113,40,104,42);ctx.bezierCurveTo(94,44,85,39,82,32);ctx.bezierCurveTo(78,24,78,12,90,6);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(120,22);ctx.lineTo(127,27);ctx.lineTo(122,31);ctx.stroke();
+  ctx.beginPath();ctx.ellipse(80,22,3,6,0,0,Math.PI*2);ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(90,42);ctx.lineTo(86,52);ctx.lineTo(106,52);ctx.lineTo(106,42);ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(86,52);ctx.bezierCurveTo(68,57,58,72,56,103);ctx.lineTo(56,132);ctx.quadraticCurveTo(58,150,76,154);ctx.lineTo(112,154);ctx.quadraticCurveTo(120,150,118,132);ctx.lineTo(114,103);ctx.bezierCurveTo(112,72,108,57,106,52);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.setLineDash([3,2]);ctx.strokeStyle='#8a9ab0';ctx.lineWidth=0.7*lw;
+  ctx.beginPath();ctx.moveTo(70,52);ctx.bezierCurveTo(66,92,64,122,68,154);ctx.stroke();
+  ctx.setLineDash([]);ctx.strokeStyle='#2c3e50';ctx.lineWidth=lw;ctx.fillStyle='#f5f0ea';
+  ctx.beginPath();ctx.moveTo(60,72);ctx.bezierCurveTo(46,78,40,98,40,116);ctx.lineTo(40,128);ctx.bezierCurveTo(40,133,44,135,48,135);ctx.lineTo(56,135);ctx.bezierCurveTo(60,135,62,133,62,128);ctx.lineTo(62,116);ctx.bezierCurveTo(62,98,64,80,68,72);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(40,128);ctx.bezierCurveTo(36,142,36,154,38,166);ctx.lineTo(50,166);ctx.bezierCurveTo(50,154,52,142,56,135);ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.ellipse(46,171,5,5,0,0,Math.PI*2);ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(74,154);ctx.bezierCurveTo(68,174,66,194,66,214);ctx.lineTo(66,228);ctx.lineTo(90,228);ctx.lineTo(90,214);ctx.bezierCurveTo(90,194,92,174,96,154);ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(66,228);ctx.bezierCurveTo(64,248,66,266,68,278);ctx.lineTo(80,280);ctx.lineTo(88,280);ctx.lineTo(90,278);ctx.bezierCurveTo(90,266,90,248,90,228);ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(68,278);ctx.bezierCurveTo(60,284,52,290,54,295);ctx.lineTo(90,295);ctx.bezierCurveTo(94,290,92,283,90,278);ctx.fill();ctx.stroke();
+  ctx.font=`${Math.max(5,6/Math.min(sx,sy))}px IBM Plex Mono,monospace`;ctx.fillStyle='#8a9ab0';ctx.textAlign='center';ctx.fillText('LATERAL (R)',80,305);
   ctx.restore();
 }
-function initCanvas() { ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,canvas.width,canvas.height); drawBodyOutline(); }
-initCanvas();
-
-function getPos(e) {
-  const rect=canvas.getBoundingClientRect(), scaleX=canvas.width/rect.width, scaleY=canvas.height/rect.height;
-  const cx=e.touches?e.touches[0].clientX:e.clientX, cy=e.touches?e.touches[0].clientY:e.clientY;
-  return {x:(cx-rect.left)*scaleX, y:(cy-rect.top)*scaleY};
+function drawProne(ctx,W,H){
+  const sx=W/200,sy=H/310;ctx.save();ctx.scale(sx,sy);figS(ctx,W,H);const lw=ctx.lineWidth/Math.min(sx,sy);ctx.lineWidth=lw;
+  ctx.beginPath();ctx.ellipse(100,20,16,18,0,0,Math.PI*2);ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(92,36);ctx.lineTo(90,46);ctx.lineTo(110,46);ctx.lineTo(108,36);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(90,46);ctx.lineTo(66,52);ctx.lineTo(52,60);ctx.lineTo(50,110);ctx.lineTo(54,138);ctx.quadraticCurveTo(58,148,72,150);ctx.lineTo(128,150);ctx.quadraticCurveTo(142,148,146,138);ctx.lineTo(150,110);ctx.lineTo(148,60);ctx.lineTo(134,52);ctx.lineTo(110,46);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.setLineDash([3,2]);ctx.strokeStyle='#8a9ab0';ctx.lineWidth=0.7*lw;
+  ctx.beginPath();ctx.moveTo(100,46);ctx.lineTo(100,150);ctx.stroke();
+  ctx.strokeStyle='#8a9ab0';ctx.lineWidth=lw*0.9;
+  ctx.beginPath();ctx.ellipse(76,72,14,10,0.3,0,Math.PI*2);ctx.stroke();
+  ctx.beginPath();ctx.ellipse(124,72,14,10,-0.3,0,Math.PI*2);ctx.stroke();
+  ctx.setLineDash([]);ctx.strokeStyle='#2c3e50';ctx.lineWidth=lw;ctx.fillStyle='#f5f0ea';
+  ctx.beginPath();ctx.moveTo(52,60);ctx.bezierCurveTo(36,66,30,86,30,106);ctx.lineTo(30,118);ctx.bezierCurveTo(30,122,34,124,38,124);ctx.lineTo(44,124);ctx.bezierCurveTo(48,124,50,122,50,118);ctx.lineTo(50,106);ctx.bezierCurveTo(50,86,52,68,52,62);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(148,60);ctx.bezierCurveTo(164,66,170,86,170,106);ctx.lineTo(170,118);ctx.bezierCurveTo(170,122,166,124,162,124);ctx.lineTo(156,124);ctx.bezierCurveTo(152,124,150,122,150,118);ctx.lineTo(150,106);ctx.bezierCurveTo(150,86,148,68,148,62);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(30,118);ctx.bezierCurveTo(26,132,26,144,28,156);ctx.lineTo(44,156);ctx.bezierCurveTo(44,144,44,132,44,124);ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(170,118);ctx.bezierCurveTo(174,132,174,144,172,156);ctx.lineTo(156,156);ctx.bezierCurveTo(156,144,156,132,156,124);ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.ellipse(36,161,7,6,0,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.beginPath();ctx.ellipse(164,161,7,6,0,0,Math.PI*2);ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(72,150);ctx.bezierCurveTo(62,168,60,186,60,206);ctx.lineTo(60,220);ctx.lineTo(80,220);ctx.lineTo(80,206);ctx.bezierCurveTo(80,186,84,168,96,150);ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(128,150);ctx.bezierCurveTo(138,168,140,186,140,206);ctx.lineTo(140,220);ctx.lineTo(120,220);ctx.lineTo(120,206);ctx.bezierCurveTo(120,186,116,168,104,150);ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(60,220);ctx.bezierCurveTo(58,240,60,258,62,272);ctx.lineTo(68,274);ctx.lineTo(74,274);ctx.lineTo(80,272);ctx.bezierCurveTo(80,258,80,240,80,220);ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(140,220);ctx.bezierCurveTo(142,240,140,258,138,272);ctx.lineTo(132,274);ctx.lineTo(126,274);ctx.lineTo(120,272);ctx.bezierCurveTo(120,258,120,240,120,220);ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(62,272);ctx.bezierCurveTo(58,278,56,284,60,288);ctx.lineTo(80,288);ctx.bezierCurveTo(82,284,82,278,80,272);ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(138,272);ctx.bezierCurveTo(142,278,144,284,140,288);ctx.lineTo(120,288);ctx.bezierCurveTo(118,284,118,278,120,272);ctx.fill();ctx.stroke();
+  ctx.font=`${Math.max(5,6/Math.min(sx,sy))}px IBM Plex Mono,monospace`;ctx.fillStyle='#8a9ab0';ctx.textAlign='center';ctx.fillText('PRONE (POSTERIOR)',100,300);
+  ctx.restore();
 }
-canvas.addEventListener('mousedown',startDraw); canvas.addEventListener('mousemove',draw); canvas.addEventListener('mouseup',stopDraw); canvas.addEventListener('mouseleave',stopDraw);
-canvas.addEventListener('touchstart',e=>{e.preventDefault();startDraw(e);},{passive:false});
-canvas.addEventListener('touchmove',e=>{e.preventDefault();draw(e);},{passive:false});
-canvas.addEventListener('touchend',stopDraw);
-
-function startDraw(e) {
-  if (currentTool==='text') { const pos=getPos(e); const t=prompt('Enter label:'); if(t){ctx.font='bold 14px DM Sans,sans-serif';ctx.fillStyle=currentColor;ctx.fillText(t,pos.x,pos.y);} return; }
-  isDrawing=true; const pos=getPos(e); lastX=pos.x; lastY=pos.y;
-  ctx.beginPath();
-  if(currentTool==='erase'){ctx.arc(pos.x,pos.y,currentSize*4,0,Math.PI*2);ctx.fillStyle='#ffffff';ctx.fill();}
-  else{ctx.arc(pos.x,pos.y,currentSize/2,0,Math.PI*2);ctx.fillStyle=currentColor;ctx.fill();}
+function drawHeadNeck(ctx,W,H){
+  const sx=W/180,sy=H/270;ctx.save();ctx.scale(sx,sy);figS(ctx,W,H);const lw=ctx.lineWidth/Math.min(sx,sy);ctx.lineWidth=lw;
+  ctx.beginPath();ctx.ellipse(90,52,44,52,0,0,Math.PI*2);ctx.fill();ctx.stroke();
+  ctx.strokeStyle='#8a9ab0';ctx.lineWidth=0.8*lw;ctx.beginPath();ctx.ellipse(90,38,34,28,0,0,Math.PI*2);ctx.stroke();ctx.strokeStyle='#2c3e50';ctx.lineWidth=lw;
+  ctx.beginPath();ctx.moveTo(52,66);ctx.bezierCurveTo(46,80,46,96,56,108);ctx.bezierCurveTo(66,120,80,126,90,126);ctx.bezierCurveTo(100,126,114,120,124,108);ctx.bezierCurveTo(134,96,134,80,128,66);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(72,122);ctx.quadraticCurveTo(90,132,108,122);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(46,60);ctx.bezierCurveTo(38,64,36,76,38,86);ctx.bezierCurveTo(40,96,46,100,50,96);ctx.bezierCurveTo(48,88,48,72,52,64);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(134,60);ctx.bezierCurveTo(142,64,144,76,142,86);ctx.bezierCurveTo(140,96,134,100,130,96);ctx.bezierCurveTo(132,88,132,72,128,64);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.ellipse(72,58,10,6,0,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.beginPath();ctx.ellipse(108,58,10,6,0,0,Math.PI*2);ctx.fill();ctx.stroke();
+  ctx.fillStyle='#2c3e50';ctx.beginPath();ctx.arc(72,58,3,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(108,58,3,0,Math.PI*2);ctx.fill();ctx.fillStyle='#f5f0ea';
+  ctx.beginPath();ctx.moveTo(84,62);ctx.bezierCurveTo(80,78,80,86,90,90);ctx.bezierCurveTo(100,86,100,78,96,62);ctx.stroke();
+  ctx.beginPath();ctx.ellipse(84,90,5,3,0,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.ellipse(96,90,5,3,0,0,Math.PI*2);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(76,106);ctx.bezierCurveTo(82,112,98,112,104,106);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(70,124);ctx.lineTo(64,146);ctx.lineTo(68,170);ctx.lineTo(112,170);ctx.lineTo(116,146);ctx.lineTo(110,124);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.strokeStyle='#8a9ab0';ctx.lineWidth=0.9*lw;
+  ctx.beginPath();ctx.moveTo(74,126);ctx.bezierCurveTo(70,142,72,158,78,170);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(106,126);ctx.bezierCurveTo(110,142,108,158,102,170);ctx.stroke();
+  ctx.setLineDash([2,2]);ctx.beginPath();ctx.moveTo(90,128);ctx.lineTo(90,170);ctx.stroke();ctx.setLineDash([]);
+  ctx.strokeStyle='#2c3e50';ctx.lineWidth=lw;ctx.fillStyle='#f5f0ea';
+  ctx.beginPath();ctx.moveTo(64,170);ctx.bezierCurveTo(40,176,22,190,18,208);ctx.lineTo(18,238);ctx.lineTo(68,238);ctx.lineTo(72,198);ctx.lineTo(68,170);ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(116,170);ctx.bezierCurveTo(140,176,158,190,162,208);ctx.lineTo(162,238);ctx.lineTo(112,238);ctx.lineTo(108,198);ctx.lineTo(112,170);ctx.fill();ctx.stroke();
+  ctx.setLineDash([3,2]);ctx.strokeStyle='#8a9ab0';ctx.lineWidth=0.7*lw;ctx.beginPath();ctx.moveTo(90,10);ctx.lineTo(90,170);ctx.stroke();ctx.setLineDash([]);
+  ctx.font=`${Math.max(5,7/Math.min(sx,sy))}px IBM Plex Mono,monospace`;ctx.fillStyle='#8a9ab0';ctx.textAlign='center';ctx.fillText('HEAD & NECK',90,255);
+  ctx.restore();
 }
-function draw(e) {
-  if(!isDrawing||currentTool==='text') return;
-  const pos=getPos(e);
-  ctx.beginPath(); ctx.lineWidth=currentTool==='erase'?currentSize*5:currentSize; ctx.lineCap='round'; ctx.lineJoin='round';
-  ctx.globalCompositeOperation=currentTool==='erase'?'destination-out':'source-over';
-  ctx.strokeStyle=currentTool==='erase'?'rgba(0,0,0,1)':currentColor;
-  ctx.moveTo(lastX,lastY); ctx.lineTo(pos.x,pos.y); ctx.stroke();
-  lastX=pos.x; lastY=pos.y;
+function drawExtremity(ctx,W,H){
+  const sx=W/200,sy=H/300;ctx.save();ctx.scale(sx,sy);figS(ctx,W,H);const lw=ctx.lineWidth/Math.min(sx,sy);ctx.lineWidth=lw;
+  ctx.beginPath();ctx.arc(50,20,14,0,Math.PI*2);ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(38,24);ctx.bezierCurveTo(30,40,28,70,30,100);ctx.lineTo(30,118);ctx.bezierCurveTo(30,124,34,126,38,126);ctx.lineTo(46,126);ctx.bezierCurveTo(50,126,52,124,52,118);ctx.lineTo(52,100);ctx.bezierCurveTo(54,70,58,40,62,24);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(30,118);ctx.bezierCurveTo(26,138,26,154,28,168);ctx.lineTo(54,168);ctx.bezierCurveTo(56,154,56,138,52,118);ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(28,168);ctx.bezierCurveTo(24,180,24,190,28,196);ctx.bezierCurveTo(32,202,38,204,44,204);ctx.bezierCurveTo(50,204,56,202,60,196);ctx.bezierCurveTo(64,190,64,180,60,168);ctx.fill();ctx.stroke();
+  for(let i=0;i<4;i++){ctx.beginPath();ctx.rect(28+i*8,196,7,15);ctx.fill();ctx.stroke();}
+  ctx.beginPath();ctx.rect(20,190,7,12);ctx.fill();ctx.stroke();
+  ctx.setLineDash([4,3]);ctx.strokeStyle='#c0b8ae';ctx.lineWidth=0.8*lw;
+  ctx.beginPath();ctx.moveTo(40,30);ctx.lineTo(36,118);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(32,122);ctx.lineTo(30,166);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(46,122);ctx.lineTo(50,166);ctx.stroke();
+  ctx.setLineDash([]);ctx.strokeStyle='#2c3e50';ctx.lineWidth=lw;ctx.fillStyle='#f5f0ea';
+  ctx.font=`${Math.max(5,7/Math.min(sx,sy))}px IBM Plex Mono,monospace`;ctx.fillStyle='#8a9ab0';ctx.textAlign='center';ctx.fillText('UPPER LIMB',46,222);
+  // Lower limb
+  ctx.fillStyle='#f5f0ea';ctx.strokeStyle='#2c3e50';
+  ctx.beginPath();ctx.arc(150,20,16,0,Math.PI*2);ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(136,26);ctx.bezierCurveTo(126,50,122,82,122,112);ctx.lineTo(122,128);ctx.bezierCurveTo(122,134,128,138,134,138);ctx.lineTo(166,138);ctx.bezierCurveTo(172,138,178,134,178,128);ctx.lineTo(178,112);ctx.bezierCurveTo(178,82,174,50,164,26);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.strokeStyle='#8a9ab0';ctx.lineWidth=0.8*lw;ctx.beginPath();ctx.ellipse(150,138,12,8,0,0,Math.PI*2);ctx.stroke();
+  ctx.strokeStyle='#2c3e50';ctx.lineWidth=lw;
+  ctx.beginPath();ctx.moveTo(122,136);ctx.bezierCurveTo(118,158,118,182,120,204);ctx.lineTo(130,208);ctx.lineTo(170,208);ctx.lineTo(182,204);ctx.bezierCurveTo(184,182,184,158,178,136);ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(120,204);ctx.bezierCurveTo(112,214,110,226,120,232);ctx.lineTo(184,232);ctx.bezierCurveTo(192,222,190,212,182,204);ctx.fill();ctx.stroke();
+  for(let i=0;i<5;i++){ctx.beginPath();ctx.rect(116+i*13,232,11,12);ctx.fill();ctx.stroke();}
+  ctx.setLineDash([4,3]);ctx.strokeStyle='#c0b8ae';ctx.lineWidth=0.8*lw;
+  ctx.beginPath();ctx.moveTo(148,34);ctx.lineTo(146,134);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(138,144);ctx.lineTo(134,204);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(160,144);ctx.lineTo(166,204);ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.font=`${Math.max(5,7/Math.min(sx,sy))}px IBM Plex Mono,monospace`;ctx.fillStyle='#8a9ab0';ctx.textAlign='center';ctx.fillText('LOWER LIMB',150,252);
+  ctx.restore();
 }
-function stopDraw() { isDrawing=false; ctx.globalCompositeOperation='source-over'; }
-function setTool(t) { currentTool=t; ['Pen','Text','Erase'].forEach(n=>document.getElementById('tool'+n).classList.remove('active')); document.getElementById('tool'+t.charAt(0).toUpperCase()+t.slice(1)).classList.add('active'); canvas.style.cursor=t==='erase'?'cell':t==='text'?'text':'crosshair'; }
-function setColor(c,id) { currentColor=c; document.querySelectorAll('.color-swatch').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
-function setSize(s,id) { currentSize=s; document.querySelectorAll('.size-btn').forEach(b=>b.classList.remove('active')); document.getElementById(id).classList.add('active'); }
-function clearCanvas() { ctx.globalCompositeOperation='source-over'; ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,canvas.width,canvas.height); drawBodyOutline(); }
-
+ 
 // ══════════════════════════════════════════
-// DATA COLLECTION
+// SAVE TO SHEETS
 // ══════════════════════════════════════════
-function g(id) { const el=document.getElementById(id); if(!el) return ''; return el.type==='checkbox'?el.checked:el.value; }
-
-function collectData() {
-  return {
-    timestamp: new Date().toISOString(),
-    user: USER_NAME,
-    date: g('f_date'), room: g('f_room'), start_time: g('f_time'),
-    mrn: g('f_mrn'), age_sex: g('f_age'), attending: g('f_attending'),
-    procedure: g('f_procedure'), anesthesia: g('f_anesthesia'), asa: g('f_asa'),
-    port1: g('f_port1'), port2: g('f_port2'), port3: g('f_port3'), port4: g('f_port4'), port5: g('f_port5'),
-    position: g('f_position'), prep: g('f_prep'), draping: g('f_draping'), foley: g('f_foley'), ngt: g('f_ngt'), bovie: g('f_bovie'),
-    med1: [g('f_med1d'),g('f_med1r'),g('f_med1t'),g('f_med1c')].filter(Boolean).join(' | '),
-    med2: [g('f_med2d'),g('f_med2r'),g('f_med2t'),g('f_med2c')].filter(Boolean).join(' | '),
-    med3: [g('f_med3d'),g('f_med3r'),g('f_med3t'),g('f_med3c')].filter(Boolean).join(' | '),
-    med4: [g('f_med4d'),g('f_med4r'),g('f_med4t'),g('f_med4c')].filter(Boolean).join(' | '),
-    vte: [g('f_scd')&&'SCDs', g('f_hep')&&'Heparin', g('f_lmwh')&&'Lovenox', g('f_ted')&&'TED Hose', g('f_holdac')&&'Hold AC', g('f_vte_other')].filter(Boolean).join(', '),
-    instruments: [g('f_lap')&&'Lap', g('f_rob')&&'Robotic', g('f_open')&&'Open', g('f_fluoro')&&'Fluoro', g('f_harmonic')&&'Harmonic', g('f_ligasure')&&'LigaSure', g('f_stapler')&&'Stapler', g('f_endobag')&&'Endo Bag'].filter(Boolean).join(', '),
-    scope: g('f_scope'), special: g('f_special'),
-    allergies: g('f_allergies'),
-    specimen1: g('f_spec1'), specimen2: g('f_spec2'), frozen: g('f_frozen'),
-    path_types: [g('f_perm')&&'Permanent', g('f_culture')&&'Culture', g('f_cyto')&&'Cytology', g('f_frozensec')&&'Frozen'].filter(Boolean).join(', '),
-    sut_fascia: g('f_sut_fascia'), sut_skin: g('f_sut_skin'), closure: g('f_closure'),
-    drain: g('f_drain'), dressing: g('f_dressing'), glue: g('f_glue'), music: g('f_music'), pref_other: g('f_pref_other'),
-    diet: g('f_diet'), activity: g('f_activity'), ivf: g('f_ivf'), pain: g('f_pain'), nausea: g('f_nausea'), dispo: g('f_dispo'),
-    disposition: [g('f_admit')&&'Admit', g('f_obs')&&'Obs', g('f_dc')&&'Discharge', g('f_icu')&&'ICU'].filter(Boolean).join(', '),
-    cut_time: g('f_cut'), close_time: g('f_close'), total_time: g('f_total'),
-    ebl: g('f_ebl'), uop: g('f_uop'), fluids: g('f_fluids'), transfusion: g('f_transfusion'), cell_saver: g('f_cellsaver'),
-    misc_notes: g('f_misc'), intraop_events: g('f_intraop'),
-    checklist: [g('f_timeout')&&'Timeout', g('f_counts')&&'Counts', g('f_opnote')&&'Op Note', g('f_family')&&'Family', g('f_fellow')&&'Fellow'].filter(Boolean).join(', ')
+function collectData(){
+  return{
+    timestamp:new Date().toISOString(),user:USER_NAME,
+    date:gv('f_date'),room:gv('f_room'),start_time:gv('f_time'),asa:gv('f_asa'),
+    mrn:gv('f_mrn'),age_sex:gv('f_age'),attending:gv('f_attending'),
+    procedure:gv('f_procedure'),anesthesia:gv('f_anesthesia'),
+    allergies:gv('f_allergies'),
+    port1:gv('f_port1'),port2:gv('f_port2'),port3:gv('f_port3'),port4:gv('f_port4'),port5:gv('f_port5'),
+    position:gv('f_position'),prep:gv('f_prep'),draping:gv('f_draping'),foley:gv('f_foley'),ngt:gv('f_ngt'),bovie:gv('f_bovie'),
+    med1:[gv('f_m1d'),gv('f_m1r'),gv('f_m1t'),gv('f_m1c')].filter(Boolean).join(' | '),
+    med2:[gv('f_m2d'),gv('f_m2r'),gv('f_m2t'),gv('f_m2c')].filter(Boolean).join(' | '),
+    med3:[gv('f_m3d'),gv('f_m3r'),gv('f_m3t'),gv('f_m3c')].filter(Boolean).join(' | '),
+    med4:[gv('f_m4d'),gv('f_m4r'),gv('f_m4t'),gv('f_m4c')].filter(Boolean).join(' | '),
+    vte:[gv('f_scd')&&'SCDs',gv('f_hep')&&'Heparin',gv('f_lmwh')&&'Lovenox',gv('f_ted')&&'TED Hose',gv('f_holdac')&&'Hold AC'].filter(Boolean).join(', '),
+    instruments:[gv('f_lap')&&'Lap',gv('f_rob')&&'Robotic',gv('f_open')&&'Open',gv('f_fluoro')&&'Fluoro',gv('f_harmonic')&&'Harmonic',gv('f_ligasure')&&'LigaSure',gv('f_stapler')&&'Stapler',gv('f_endobag')&&'Endo Bag'].filter(Boolean).join(', '),
+    scope:gv('f_scope'),special:gv('f_special'),
+    sut_fascia:gv('f_sf'),sut_skin:gv('f_ss'),closure:gv('f_cl'),drain:gv('f_dr'),dressing:gv('f_ds'),glue:gv('f_gl'),music:gv('f_mu'),pref_other:gv('f_po'),
+    diet:gv('f_diet'),activity:gv('f_activity'),ivf:gv('f_ivf'),pain:gv('f_pain'),nausea:gv('f_nausea'),dispo:gv('f_dispo'),
+    disposition:[gv('f_admit')&&'Admit',gv('f_obs')&&'Obs',gv('f_dc')&&'Discharge',gv('f_icu')&&'ICU'].filter(Boolean).join(', '),
+    cut_time:gv('f_cut'),close_time:gv('f_close'),total_time:gv('f_total'),
+    ebl:gv('f_ebl'),uop:gv('f_uop'),fluids:gv('f_fluids'),transfusion:gv('f_transfusion'),cell_saver:gv('f_cellsaver'),
+    specimen1:gv('f_spec1'),specimen2:gv('f_spec2'),frozen:gv('f_frozen'),
+    path_types:[gv('f_perm')&&'Permanent',gv('f_culture')&&'Culture',gv('f_cyto')&&'Cytology',gv('f_frzn')&&'Frozen'].filter(Boolean).join(', '),
+    misc_notes:gv('f_misc'),intraop_events:gv('f_intraop'),
+    checklist:[gv('f_timeout')&&'Timeout',gv('f_counts')&&'Counts',gv('f_opnote')&&'Op Note',gv('f_family')&&'Family',gv('f_fellow')&&'Fellow'].filter(Boolean).join(', '),
+    body_diagram:bc.toDataURL('image/png')
   };
 }
-
-// ══════════════════════════════════════════
-// SAVE TO GOOGLE SHEETS
-// ══════════════════════════════════════════
-async function saveToSheets() {
-  if (!SCRIPT_URL) {
-    openConfigModal();
-    showToast('Please configure your Google Sheets URL first', 'error');
+ 
+async function saveToSheets(){
+  if(!SCRIPT_URL){ openSetup(); toast('Configure Google Sheets first','err'); return; }
+ 
+  const btn  = document.querySelector('.strip-save');
+  const hbtn = document.querySelector('.hbtn-save');
+  const origBtn = btn.textContent, origHbtn = hbtn.textContent;
+  btn.textContent = '⏳ Saving…'; btn.disabled = true;
+  hbtn.textContent = '⏳'; hbtn.disabled = true;
+ 
+  try {
+    const data = collectData();
+    // Remove diagram — sent separately after main data
+    delete data.body_diagram;
+ 
+    // Submit text data via hidden form/iframe (bypasses all CORS on iOS)
+    await submitViaForm(SCRIPT_URL, { data: JSON.stringify(data) });
+ 
+    toast('✓ Saved to Sheets', 'ok');
+ 
+  } catch(err) {
+    showSaveError('Save Error', err.message, err.stack || '');
+  } finally {
+    btn.textContent = origBtn; btn.disabled = false;
+    hbtn.textContent = origHbtn; hbtn.disabled = false;
+  }
+}
+ 
+ 
+function submitViaForm(url, fields) {
+  return new Promise(function(resolve) {
+    // Create hidden iframe
+    var iframeName = 'orFrame' + Date.now();
+    var iframe = document.createElement('iframe');
+    iframe.setAttribute('name', iframeName);
+    iframe.style.cssText = 'display:none;width:0;height:0;position:absolute;left:-9999px';
+    document.body.appendChild(iframe);
+ 
+    // Create form targeting the iframe
+    var form = document.createElement('form');
+    form.setAttribute('method', 'POST');
+    form.setAttribute('action', url);
+    form.setAttribute('target', iframeName);
+    form.style.display = 'none';
+ 
+    // Add each field as a hidden input
+    for (var key in fields) {
+      if (fields.hasOwnProperty(key)) {
+        var input = document.createElement('input');
+        input.setAttribute('type', 'hidden');
+        input.setAttribute('name', key);
+        input.setAttribute('value', fields[key] || '');
+        form.appendChild(input);
+      }
+    }
+ 
+    document.body.appendChild(form);
+ 
+    function cleanup() {
+      try { form.parentNode && form.parentNode.removeChild(form); } catch(e){}
+      try { iframe.parentNode && iframe.parentNode.removeChild(iframe); } catch(e){}
+    }
+ 
+    iframe.onload = function() {
+      setTimeout(cleanup, 500);
+      resolve();
+    };
+ 
+    // Always resolve after 10s even if onload never fires
+    setTimeout(function() { cleanup(); resolve(); }, 10000);
+ 
+    form.submit();
+  });
+}
+ 
+ 
+function debugSaveTest(){
+  if(!SCRIPT_URL){ alert('No URL configured. Open Setup first.'); return; }
+ 
+  const btn = document.getElementById('debugTestBtn');
+  const out = document.getElementById('debugResult');
+  btn.textContent = 'Testing...'; btn.disabled = true;
+  out.textContent = '';
+ 
+  // Check if running from a real hosted URL or a local/srcdoc context
+  const loc = window.location.href;
+  const isLocal = loc.startsWith('file://') || loc.startsWith('about:') || loc.startsWith('blob:');
+  if(isLocal){
+    out.textContent = [
+      '⚠ Cannot connect from a local file.',
+      '',
+      'You are opening the HTML file directly from your computer or',
+      'phone (file:// or about:srcdoc). Browsers block all network',
+      'requests from local files for security.',
+      '',
+      'TO FIX:',
+      '1. Upload or_sheet_v7.html to GitHub Pages as index.html',
+      '2. Open the GitHub Pages URL in Safari',
+      '   (e.g. https://yourname.github.io/or-sheet)',
+      '3. Run this test again from that URL',
+      '',
+      'Your current URL:',
+      loc
+    ].join('\n');
+    btn.textContent = '🔬 Test Again'; btn.disabled = false;
     return;
   }
-  const btn = document.querySelector('.tb-btn.sheets-btn');
-  btn.textContent = '⏳ Saving...';
-  btn.style.opacity = '0.7';
-
-  const data = collectData();
-
-  try {
-    await fetch(SCRIPT_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
+ 
+  const url = SCRIPT_URL;
+  const testData = JSON.stringify({
+    timestamp: new Date().toISOString(),
+    user: 'DEBUG',
+    date: 'DEBUG',
+    procedure: 'DEBUG TEST — delete this row',
+    misc_notes: 'Sent at ' + new Date().toLocaleTimeString()
+  });
+ 
+  out.textContent = 'Page URL: ' + loc + '\n';
+  out.textContent += 'Script URL: ' + url + '\n';
+ 
+  // Step 1: GET ping
+  out.textContent += '\nStep 1: GET ping...';
+  fetch(url, { method: 'GET' })
+    .then(function(r){ return r.text(); })
+    .then(function(txt){
+      out.textContent += ' OK';
+      out.textContent += '\nResponse: ' + txt.slice(0, 300);
+      step2();
+    })
+    .catch(function(err){
+      out.textContent += ' FAILED\nError: ' + err.message;
+      out.textContent += '\n\nURL is unreachable. Check:';
+      out.textContent += '\n• Deployed with "Who has access: Anyone"';
+      out.textContent += '\n• URL ends in /exec (not /dev)';
+      out.textContent += '\n• Try opening the URL directly in Safari';
+      btn.textContent = '🔬 Test Again'; btn.disabled = false;
     });
-    // no-cors means we can't read the response, but if no error thrown it succeeded
-    showToast('✓ Case saved to Google Sheets!', 'success');
-  } catch (err) {
-    showToast('⚠ Save failed — check your URL in ⚙ Setup', 'error');
-  } finally {
-    btn.textContent = '📊 Save to Sheets';
-    btn.style.opacity = '1';
+ 
+  // Step 2: iframe form POST
+  function step2(){
+    out.textContent += '\n\nStep 2: Form POST...';
+    submitViaForm(url, { data: testData })
+      .then(function(){
+        out.textContent += ' sent.';
+        out.textContent += '\n\nCheck your Google Sheet now.';
+        out.textContent += '\nLook for a row with "DEBUG TEST" in Procedure column.';
+        out.textContent += '\n\nIf no row appears after 10 seconds:';
+        out.textContent += '\n• In Apps Script editor → Executions (left sidebar)';
+        out.textContent += '\n• Look for errors in the most recent execution';
+        btn.textContent = '🔬 Test Again'; btn.disabled = false;
+      });
   }
 }
-
-// ══════════════════════════════════════════
-// OTHER EXPORTS
-// ══════════════════════════════════════════
-function buildTextSummary(d) {
-  return `OR CASE SUMMARY
-═══════════════════════════════
-Date: ${d.date||'—'}  Room: ${d.room||'—'}  Start: ${d.start_time||'—'}
-MRN: ${d.mrn||'—'}  Age/Sex: ${d.age_sex||'—'}  Attending: ${d.attending||'—'}
-Procedure: ${d.procedure||'—'}
-Anesthesia: ${d.anesthesia||'—'}  ASA: ${d.asa||'—'}
-
-POSITION & PREP
-Position: ${d.position||'—'}  Prep: ${d.prep||'—'}
-Foley: ${d.foley||'—'}  Bovie: ${d.bovie||'—'}
-
-PORTS: 1:${d.port1||'—'} 2:${d.port2||'—'} 3:${d.port3||'—'} 4:${d.port4||'—'} 5:${d.port5||'—'}
-
-MEDS: ${[d.med1,d.med2,d.med3,d.med4].filter(Boolean).join(' | ')||'None'}
-VTE: ${d.vte||'—'}
-INSTRUMENTS: ${d.instruments||'—'}
-
-ALLERGIES: ${d.allergies||'None'}
-
-ATTENDING PREFS
-Fascia: ${d.sut_fascia||'—'}  Skin: ${d.sut_skin||'—'}
-Drain: ${d.drain||'—'}  Dressing: ${d.dressing||'—'}
-
-POST-OP: Diet:${d.diet||'—'} Activity:${d.activity||'—'} IVF:${d.ivf||'—'}
-Pain:${d.pain||'—'}  Dispo:${d.disposition||d.dispo||'—'}
-
-OPERATIVE DATA
-EBL:${d.ebl||'—'}mL  UOP:${d.uop||'—'}mL  Fluids:${d.fluids||'—'}
-Cut:${d.cut_time||'—'}  Close:${d.close_time||'—'}  Total:${d.total_time||'—'}
-
-SPECIMENS: ${d.specimen1||'—'} / ${d.specimen2||'—'}
-INTRAOP EVENTS: ${d.intraop_events||'None'}
-MISC NOTES: ${d.misc_notes||'None'}
-CHECKLIST: ${d.checklist||'—'}`;
+ 
+ 
+function showSaveError(title, msg, detail){
+  document.getElementById('saveErrTitle').textContent = title;
+  document.getElementById('saveErrMsg').textContent = msg || '(no message)';
+  document.getElementById('saveErrDetail').textContent = detail || '';
+  document.getElementById('saveErrModal').classList.add('open');
+  console.error('Save error:', title, msg, detail);
 }
-
-function downloadBlob(content, filename, type) {
-  const blob=new Blob([content],{type}), url=URL.createObjectURL(blob), a=document.createElement('a');
-  a.href=url; a.download=filename; document.body.appendChild(a); a.click();
-  setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},1000);
+ 
+function openDiagInfo(){ document.getElementById('diagInfoModal').classList.add('open'); }
+function closeDiagInfo(){ document.getElementById('diagInfoModal').classList.remove('open'); }
+ 
+function doPrint(){
+  // window.print() is blocked in iOS standalone/PWA mode.
+  // Open in a new tab which supports printing on all platforms.
+  const w = window.open('', '_blank');
+  if(w){
+    w.document.write(document.documentElement.outerHTML);
+    w.document.close();
+    w.focus();
+    setTimeout(()=>{ w.print(); }, 800);
+  } else {
+    // Fallback if popup blocked
+    window.print();
+  }
 }
-
-function downloadCSV() {
-  const d=collectData();
-  const keys=Object.keys(d), vals=Object.values(d);
-  const esc=v=>`"${String(v||'').replace(/"/g,'""')}"`;
-  downloadBlob([keys.map(esc).join(','),vals.map(esc).join(',')].join('\n'), `OR_${d.procedure||'case'}_${d.date||Date.now()}.csv`.replace(/[^a-zA-Z0-9_\-.]/g,'_'), 'text/csv');
-  showToast('⬇ CSV downloaded'); closeExportModal();
+ 
+function newCase(){
+  // confirm() is silently blocked in iOS standalone (PWA) mode — use custom modal
+  document.getElementById('newCaseModal').classList.add('open');
 }
-function downloadJSON() {
-  const d=collectData();
-  downloadBlob(JSON.stringify(d,null,2), `OR_${d.procedure||'case'}_${d.date||Date.now()}.json`.replace(/[^a-zA-Z0-9_\-.]/g,'_'), 'application/json');
-  showToast('⬇ JSON downloaded'); closeExportModal();
+function confirmNewCase(){
+  document.getElementById('newCaseModal').classList.remove('open');
+  document.querySelectorAll('textarea').forEach(el=>{ el.value=''; ar(el); });
+  document.querySelectorAll('input[type="text"],input[type="url"]').forEach(el=>{ el.value=''; });
+  document.querySelectorAll('input[type="checkbox"]').forEach(el=>{ el.checked=false; });
+  clearCanvas();
+  toast('New case started');
 }
-function emailSummary() {
-  const d=collectData();
-  window.location.href=`mailto:?subject=${encodeURIComponent('OR Case: '+d.procedure+' — '+d.date)}&body=${encodeURIComponent(buildTextSummary(d))}`;
-  closeExportModal();
+function cancelNewCase(){
+  document.getElementById('newCaseModal').classList.remove('open');
 }
-function copyToClipboard() {
-  const t=buildTextSummary(collectData());
-  navigator.clipboard.writeText(t).then(()=>{showToast('📋 Copied');closeExportModal();}).catch(()=>{const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();showToast('📋 Copied');closeExportModal();});
+ 
+let tt;
+function toast(msg,type=''){
+  const el=document.getElementById('toast');el.textContent=msg;el.className='toast show'+(type?' '+type:'');
+  clearTimeout(tt);tt=setTimeout(()=>el.className='toast',2600);
 }
-
-function newCase() {
-  if(!confirm('Start a new case? Current data will be cleared.')) return;
-  document.querySelectorAll('.ef').forEach(el=>{if(el.type==='checkbox'){el.checked=false;}else{el.value='';}});
-  document.querySelectorAll('input[type="checkbox"]').forEach(el=>el.checked=false);
-  clearCanvas(); showToast('✓ New case started');
-}
-
-function openExportModal() { document.getElementById('exportModal').classList.add('open'); }
-function closeExportModal() { document.getElementById('exportModal').classList.remove('open'); }
-document.getElementById('exportModal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeExportModal();});
-document.getElementById('configModal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeConfigModal();});
-
-let toastTimer;
-function showToast(msg, type='') {
-  const t=document.getElementById('toast'); t.textContent=msg; t.className='toast show'+(type?' '+type:'');
-  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.className='toast',2800);
-}
-
-// Init
-updateStatusIndicator();
 </script>
 </body>
 </html>
