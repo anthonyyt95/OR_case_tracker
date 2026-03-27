@@ -968,17 +968,19 @@ function switchDiagTab(t){
 // ── GitHub-hosted diagram images ──
 // Upload these image files to your GitHub repo and update the URLs below.
 // e.g. https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/images/back.jpg
-const GITHUB_BASE = 'https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/images/';
-const IMG_BACK    = GITHUB_BASE + 'back.jpg';
-const IMG_PELVIS  = GITHUB_BASE + 'pelvis.jpg';
-const IMG_ABDOMEN = GITHUB_BASE + 'abdomen.jpg';
-const IMG_CHEST   = GITHUB_BASE + 'chest.jpg';
+const GITHUB_BASE = 'https://raw.githubusercontent.com/anthonyyt95/OR_case_tracker/main/images/';
+const IMG_BACK    = GITHUB_BASE + 'Back.png';
+const IMG_PELVIS  = GITHUB_BASE + 'Pelvis.png';
+const IMG_ABDOMEN = GITHUB_BASE + 'Abdomen.png';
+const IMG_CHEST   = GITHUB_BASE + 'Chest.png';
+const IMG_HEAD    = GITHUB_BASE + 'Head.png';
 
 const BUILTIN = [
   {id:'back',    label:'Back',    src: IMG_BACK},
   {id:'pelvis',  label:'Pelvis',  src: IMG_PELVIS},
   {id:'abdomen', label:'Abdomen', src: IMG_ABDOMEN},
   {id:'chest',   label:'Chest',   src: IMG_CHEST},
+  {id:'head',    label:'Head',    src: IMG_HEAD}
 ];
 let customDiagrams=[], activeDiagId='back';
 
@@ -1452,294 +1454,272 @@ async function saveToSheets(){
   }
 }
 
-// ── Generate PDF from the current page content ──
+// ── Generate PDF using native jsPDF (vector text + raster images) ──
 async function generatePDF(){
   const { jsPDF } = window.jspdf;
 
-  // Build a clean print-ready HTML snapshot
-  const printEl = buildPrintElement();
-  document.body.appendChild(printEl);
-
-  try {
-    // Render to canvas
-    const canvas = await html2canvas(printEl, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: '#ffffff',
-      logging: false,
-      width: 794,    // A4 width at 96dpi
-      windowWidth: 794
-    });
-
-    const imgData = canvas.toDataURL('image/jpeg', 0.92);
-    const imgW    = canvas.width;
-    const imgH    = canvas.height;
-
-    // A4 dimensions in mm
-    const pageW = 210;
-    const pageH = 297;
-    const margin = 10;
-    const usableW = pageW - margin * 2;
-    const usableH = pageH - margin * 2;
-
-    // Scale image to page width
-    const ratio   = imgW / imgH;
-    const pdfImgW = usableW;
-    const pdfImgH = usableW / ratio;
-
-    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-
-    // Split across pages if content is taller than one page
-    let yPos = 0;
-    while(yPos < pdfImgH) {
-      if(yPos > 0) pdf.addPage();
-      pdf.addImage(
-        imgData, 'JPEG',
-        margin, margin - (yPos / pdfImgH) * pdfImgH * (usableH / usableH),
-        pdfImgW, pdfImgH,
-        '', 'FAST',
-        0,
-        // sourceY in the canvas space
-        -(yPos * imgH / pdfImgH) / 2 // scale factor for canvas.scale=2
-      );
-      yPos += usableH;
-    }
-
-    // Better multi-page: use clip approach
-    // Actually use the simpler reliable approach: one tall page
-    const pdfSimple = new jsPDF({
-      orientation: 'portrait',
-      unit: 'mm',
-      format: [pageW, Math.max(pageH, pdfImgH + margin * 2)]
-    });
-    pdfSimple.addImage(imgData, 'JPEG', margin, margin, pdfImgW, pdfImgH, '', 'FAST');
-
-    return pdfSimple.output('datauristring').split(',')[1]; // return base64 only
-
-  } finally {
-    document.body.removeChild(printEl);
-  }
-}
-
-// ── Build a clean snapshot of the case content for PDF rendering ──
-function buildPrintElement(){
-  const el = document.createElement('div');
-  el.style.cssText = 'position:absolute;left:-9999px;top:0;width:794px;background:white;font-family:sans-serif;padding:24px;box-sizing:border-box;';
-
-  // Collect all field values
   const d = collectData();
 
-  function section(title, color, rows){
-    if(!rows.some(r=>r[1])) return '';
-    const hColor = color || '#1c3f5e';
-    let html = `<div style="margin-bottom:12px;border-radius:6px;overflow:hidden;border:1px solid #ddd;">
-      <div style="background:${hColor};color:white;font-weight:bold;font-size:11px;padding:6px 12px;letter-spacing:0.5px;">${title}</div>
-      <table style="width:100%;border-collapse:collapse;font-size:10px;">`;
-    rows.forEach((r,i)=>{
-      if(!r[1]) return;
-      html += `<tr style="background:${i%2===0?'white':'#f4f1ec'}">
-        <td style="padding:4px 10px;font-weight:bold;color:${hColor};width:120px;vertical-align:top">${r[0]}</td>
-        <td style="padding:4px 10px;color:#1a1a1a">${r[1]}</td>`;
-      if(r[2]!==undefined){
-        html += `<td style="padding:4px 10px;font-weight:bold;color:${hColor};width:120px;vertical-align:top">${r[2]||''}</td>
-          <td style="padding:4px 10px;color:#1a1a1a">${r[3]||''}</td>`;
-      }
-      html += '</tr>';
-    });
-    html += '</table></div>';
-    return html;
+  // Page layout constants (mm)
+  const pageW  = 210;
+  const pageH  = 297;
+  const margin = 12;
+  const col    = pageW - margin * 2;  // usable width
+  const rowH   = 6;     // standard text row height
+  const secGap = 4;     // gap between sections
+
+  const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+  // ── Colour palette ──
+  const C = {
+    navy:   [28,  63, 94],
+    teal:   [13, 110, 110],
+    red:    [192, 57, 43],
+    steel:  [44, 110, 138],
+    grey:   [85,  85, 85],
+    black:  [26,  26, 26],
+    white:  [255,255,255],
+    lightbg:[232,240,244],
+    stripe: [244,241,236],
+  };
+
+  // Helper: set fill colour from array
+  function fill(c){ pdf.setFillColor(c[0],c[1],c[2]); }
+  function stroke(c){ pdf.setDrawColor(c[0],c[1],c[2]); }
+  function textC(c){ pdf.setTextColor(c[0],c[1],c[2]); }
+
+  // ── Cursor tracking with auto page-break ──
+  let y = margin;
+  function checkPage(needed){
+    if(y + needed > pageH - margin){
+      pdf.addPage();
+      y = margin;
+    }
   }
 
-  function fullSection(title, color, text){
-    if(!text) return '';
-    return `<div style="margin-bottom:12px;border-radius:6px;overflow:hidden;border:1px solid ${color||'#ddd'};">
-      <div style="background:${color||'#1c3f5e'};color:white;font-weight:bold;font-size:11px;padding:6px 12px;">${title}</div>
-      <div style="padding:8px 12px;font-size:10px;color:#1a1a1a;background:white;">${text}</div>
-    </div>`;
+  // ── Section header bar ──
+  function sectionHeader(title, color){
+    checkPage(8);
+    fill(color); pdf.rect(margin, y, col, 6, 'F');
+    textC(C.white);
+    pdf.setFont('helvetica','bold'); pdf.setFontSize(8);
+    pdf.text(title, margin+3, y+4.2);
+    y += 6;
   }
 
-  // Diagram image
-  let diagHtml = '';
+  // ── Two-column label/value row ──
+  function dataRow(label, value, label2, value2, colorAccent, even){
+    if(!value && !value2) return;
+    const bg = even ? C.white : C.stripe;
+    fill(bg); pdf.rect(margin, y, col, rowH, 'F');
+
+    pdf.setFont('helvetica','bold'); pdf.setFontSize(8); textC(colorAccent);
+    pdf.text(label||'', margin+2, y+4.2);
+
+    pdf.setFont('helvetica','normal'); textC(C.black);
+    const valStr = String(value||'');
+    const halfW = col/2 - 4;
+    pdf.text(valStr, margin+32, y+4.2, {maxWidth: halfW});
+
+    if(label2 !== undefined){
+      pdf.setFont('helvetica','bold'); textC(colorAccent);
+      pdf.text(label2||'', margin+col/2+2, y+4.2);
+      pdf.setFont('helvetica','normal'); textC(C.black);
+      const val2Str = String(value2||'');
+      pdf.text(val2Str, margin+col/2+32, y+4.2, {maxWidth: halfW});
+    }
+    y += rowH;
+  }
+
+  // ── Full-width text block (wraps) ──
+  function textBlock(text, colorAccent){
+    if(!text) return;
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(8); textC(C.black);
+    const lines = pdf.splitTextToSize(String(text), col - 4);
+    const needed = lines.length * 4.5 + 2;
+    checkPage(needed);
+    fill(C.white); pdf.rect(margin, y, col, needed, 'F');
+    pdf.text(lines, margin+3, y+4);
+    y += needed;
+  }
+
+  // ── Image block (canvas → PNG) ──
+  async function imageBlock(canvas, label, borderColor){
+    // Export canvas at full resolution as PNG
+    const imgData = canvas.toDataURL('image/png');
+    // Natural aspect ratio
+    const aspect = canvas.height / canvas.width;
+    const imgW   = col - 6;
+    const imgH   = imgW * aspect;
+    checkPage(imgH + 8);
+    sectionHeader(label, borderColor);
+    checkPage(imgH + 4);
+    fill(C.white); pdf.rect(margin, y, col, imgH + 4, 'F');
+    pdf.addImage(imgData, 'PNG', margin+3, y+2, imgW, imgH, '', 'FAST');
+    y += imgH + 4 + secGap;
+  }
+
+  // ── Divider line ──
+  function divider(){
+    stroke([220,220,220]); pdf.setLineWidth(0.2);
+    pdf.line(margin, y, margin+col, y);
+  }
+
+  // ════════════════════════════════════════
+  // PAGE HEADER
+  // ════════════════════════════════════════
+  fill(C.navy); pdf.rect(margin, y, col, 10, 'F');
+  textC(C.white);
+  pdf.setFont('helvetica','bold'); pdf.setFontSize(14);
+  pdf.text('OR Case Summary', margin+4, y+7);
+  const headerMeta = [d.date, d.start_time, d.room].filter(Boolean).join('   ·   ');
+  pdf.setFont('helvetica','normal'); pdf.setFontSize(8);
+  pdf.text(headerMeta, pageW - margin - 4, y+7, {align:'right'});
+  y += 10;
+
+  // Sub-header bar
+  fill(C.lightbg); pdf.rect(margin, y, col, 6, 'F');
+  textC(C.navy);
+  pdf.setFont('helvetica','bold'); pdf.setFontSize(8);
+  pdf.text('Attending:', margin+3, y+4.2);
+  pdf.setFont('helvetica','normal');
+  pdf.text(d.attending||'—', margin+22, y+4.2);
+  pdf.setFont('helvetica','bold');
+  pdf.text('Procedure:', margin+col/2, y+4.2);
+  pdf.setFont('helvetica','normal');
+  pdf.text(d.procedure||'—', margin+col/2+22, y+4.2, {maxWidth: col/2-24});
+  y += 6 + secGap;
+
+  // ════════════════════════════════════════
+  // ALLERGIES (safety-critical — always first)
+  // ════════════════════════════════════════
+  if(d.allergies){
+    sectionHeader('⚠  ALLERGIES & ALERTS', C.red);
+    textBlock(d.allergies, C.red);
+    y += secGap;
+  }
+
+  // ════════════════════════════════════════
+  // CASE IDENTITY
+  // ════════════════════════════════════════
+  sectionHeader('CASE IDENTITY', C.navy);
+  dataRow('MRN',         d.mrn,       'Age / Sex',  d.age_sex,   C.navy, true);
+  dataRow('Attending',   d.attending, 'Procedure',  d.procedure, C.navy, false);
+  dataRow('Anesthesia',  d.anesthesia,'ASA Class',  d.asa,       C.navy, true);
+  y += secGap;
+
+  // ════════════════════════════════════════
+  // POSITION & PREP
+  // ════════════════════════════════════════
+  sectionHeader('POSITION & PREP', C.teal);
+  dataRow('Position',    d.position,  'Prep Soln.', d.prep,   C.teal, true);
+  dataRow('Draping',     d.draping,   'Foley',      d.foley,  C.teal, false);
+  dataRow('NGT/OGT',     d.ngt,       'Bovie Pad',  d.bovie,  C.teal, true);
+  y += secGap;
+
+  // ════════════════════════════════════════
+  // DIAGRAMS (raster — canvas export)
+  // ════════════════════════════════════════
   if(hasDiagramDrawing()){
-    const diagSrc = compressDiagram(bc);
-    diagHtml = `<div style="margin-bottom:12px;border-radius:6px;overflow:hidden;border:1px solid #0d6e6e;">
-      <div style="background:#0d6e6e;color:white;font-weight:bold;font-size:11px;padding:6px 12px;">PORT / INCISION DIAGRAM</div>
-      <div style="padding:8px;background:white;text-align:center;">
-        <img src="${diagSrc}" style="max-width:100%;height:auto;">
-      </div>
-    </div>`;
+    await imageBlock(bc, 'PORT / INCISION DIAGRAM', C.teal);
   }
-
-  // Blank canvas image (only included if the user drew something on it)
-  let blankHtml = '';
   if(hasBlankDrawing()){
-    const blankSrc = compressDiagram(blankCanvas);
-    blankHtml = `<div style="margin-bottom:12px;border-radius:6px;overflow:hidden;border:1px solid #555;">
-      <div style="background:#555;color:white;font-weight:bold;font-size:11px;padding:6px 12px;">BLANK DRAWING</div>
-      <div style="padding:8px;background:white;text-align:center;">
-        <img src="${blankSrc}" style="max-width:100%;height:auto;">
-      </div>
-    </div>`;
+    await imageBlock(blankCanvas, 'BLANK DRAWING', C.grey);
   }
 
-  const meds = [d.med1,d.med2,d.med3,d.med4].filter(Boolean).join('<br>• ');
-
-  el.innerHTML = `
-    <div style="background:#1c3f5e;color:white;padding:12px 16px;border-radius:6px 6px 0 0;margin-bottom:2px;">
-      <div style="font-size:18px;font-weight:bold;">OR Case Summary</div>
-      <div style="font-size:11px;opacity:0.8;margin-top:2px;">${[d.date,d.start_time,d.room].filter(Boolean).join('  ·  ')}</div>
-    </div>
-    <div style="background:#e8f0f4;padding:4px 16px;margin-bottom:14px;font-size:10px;color:#1c3f5e;border:1px solid #1c3f5e;border-top:none;border-radius:0 0 4px 4px;">
-      Attending: <strong>${d.attending||'—'}</strong> &nbsp;|&nbsp; Procedure: <strong>${d.procedure||'—'}</strong>
-    </div>
-
-    ${d.allergies ? fullSection('⚠ ALLERGIES & ALERTS','#c0392b',d.allergies) : ''}
-
-    ${section('CASE IDENTITY','#1c3f5e',[
-      ['MRN',d.mrn,'Age / Sex',d.age_sex],
-      ['Attending',d.attending,'Procedure',d.procedure],
-      ['Anesthesia',d.anesthesia,'ASA Class',d.asa]
-    ])}
-
-    ${section('POSITION & PREP','#0d6e6e',[
-      ['Position',d.position,'Prep Solution',d.prep],
-      ['Draping',d.draping,'Foley',d.foley],
-      ['NGT/OGT',d.ngt,'Bovie Pad',d.bovie]
-    ])}
-
-    ${section('PORT / INCISION KEY','#0d6e6e',[
-      ['Port 1',d.port1,'Port 2',d.port2],
-      ['Port 3',d.port3,'Port 4',d.port4],
-      ['Port 5',d.port5,'','']
-    ])}
-
-    ${diagHtml}
-    ${blankHtml}
-
-    ${meds ? fullSection('ANTIBIOTICS & MEDICATIONS','#2c6e8a','• '+meds) : ''}
-
-    ${section('VTE & INSTRUMENTS','#0d6e6e',[
-      ['VTE Prophylaxis',d.vte,'Instruments',d.instruments],
-      ['Scope Size',d.scope,'Special Req.',d.special]
-    ])}
-
-    ${section('ATTENDING PREFERENCES','#1c3f5e',[
-      ['Suture (Fascia)',d.sut_fascia,'Suture (Skin)',d.sut_skin],
-      ['Closure',d.closure,'Drain',d.drain],
-      ['Dressing',d.dressing,'Glue/Staples',d.glue],
-      ['Music/Setup',d.music,'Other',d.pref_other]
-    ])}
-
-    ${section('POST-OP ORDERS','#0d6e6e',[
-      ['Diet',d.diet,'Activity',d.activity],
-      ['IVF',d.ivf,'Pain',d.pain],
-      ['Nausea',d.nausea,'Disposition',(d.dispo||'')+(d.disposition?' ('+d.disposition+')':'')]
-    ])}
-
-    ${section('OPERATIVE DATA','#1c3f5e',[
-      ['Cut Time',d.cut_time,'Close Time',d.close_time],
-      ['Total Time',d.total_time,'EBL (mL)',d.ebl],
-      ['UOP (mL)',d.uop,'Fluids In',d.fluids],
-      ['Transfusion',d.transfusion,'Cell Saver',d.cell_saver]
-    ])}
-
-    ${section('SPECIMENS & PATHOLOGY','#0d6e6e',[
-      ['Specimen 1',d.specimen1,'Specimen 2',d.specimen2],
-      ['Frozen Section',d.frozen,'Path Types',d.path_types]
-    ])}
-
-    ${d.intraop_events ? fullSection('⚠ INTRAOP EVENTS / COMPLICATIONS','#c0392b',d.intraop_events) : ''}
-    ${d.misc_notes ? fullSection('MISC NOTES','#1c3f5e',d.misc_notes) : ''}
-
-    <div style="margin-top:12px;text-align:right;font-size:8px;color:#999;font-style:italic;">
-      Generated: ${new Date().toLocaleString()}
-    </div>
-  `;
-
-  return el;
-}
-
-
-// Detect whether the user has drawn anything on the canvas
-// by comparing a sample of pixels to what a fresh background image would produce.
-// Strategy: check if canvas is entirely white/near-white (blank) or matches
-// the loaded background exactly. We use a simpler heuristic: sample
-// random pixels and check color variance — a blank or pure-background canvas
-// has low variance; drawings add distinct colors.
-function hasDiagramDrawing() {
-  try {
-    var c = bc;
-    var ctx2 = c.getContext('2d');
-    var w = c.width, h = c.height;
-    // Sample a grid of pixels across the canvas
-    var samples = 80;
-    var stepX = Math.floor(w / 10);
-    var stepY = Math.floor(h / 8);
-    var pixels = [];
-    for (var y = stepY; y < h; y += stepY) {
-      for (var x = stepX; x < w; x += stepX) {
-        var px = ctx2.getImageData(x, y, 1, 1).data;
-        pixels.push([px[0], px[1], px[2]]);
-      }
-    }
-    if (pixels.length === 0) return false;
-    // Check for any pixel that is clearly not skin-tone, white, or light grey
-    // Drawn marks tend to be red, blue, green, black, orange
-    for (var i = 0; i < pixels.length; i++) {
-      var r = pixels[i][0], g = pixels[i][1], b = pixels[i][2];
-      // Skip near-white pixels (background)
-      if (r > 220 && g > 220 && b > 220) continue;
-      // Skip skin-tone range (the anatomy images)
-      if (r > 180 && g > 140 && b > 120 && r > g && g > b) continue;
-      // Skip near-black outline pixels of the anatomy
-      if (r < 60 && g < 60 && b < 60) continue;
-      // Skip light grey/beige background shades
-      if (Math.abs(r-g) < 25 && Math.abs(g-b) < 25 && r > 150) continue;
-      // Anything else is likely a user drawing
-      return true;
-    }
-    return false;
-  } catch(e) {
-    return true; // if we can't check, include it
+  // ════════════════════════════════════════
+  // ANTIBIOTICS & MEDICATIONS
+  // ════════════════════════════════════════
+  const meds = [d.med1,d.med2,d.med3,d.med4].filter(Boolean);
+  if(meds.length){
+    sectionHeader('ANTIBIOTICS & MEDICATIONS', C.steel);
+    meds.forEach((m,i)=>{
+      fill(i%2===0?C.white:C.stripe); pdf.rect(margin, y, col, rowH, 'F');
+      pdf.setFont('helvetica','normal'); pdf.setFontSize(8); textC(C.black);
+      pdf.text('• '+m, margin+3, y+4.2, {maxWidth: col-6});
+      y += rowH;
+    });
+    y += secGap;
   }
-}
 
-// Detect whether anything has been drawn on the blank canvas
-function hasBlankDrawing() {
-  try {
-    if (!blankCanvas || !blankCtx) return false;
-    var w = blankCanvas.width, h = blankCanvas.height;
-    if (!w || !h) return false;
-    var stepX = Math.floor(w / 10);
-    var stepY = Math.floor(h / 8);
-    if (!stepX || !stepY) return false;
-    for (var y = stepY; y < h; y += stepY) {
-      for (var x = stepX; x < w; x += stepX) {
-        var px = blankCtx.getImageData(x, y, 1, 1).data;
-        var r = px[0], g = px[1], b = px[2];
-        // Skip near-white (blank canvas background)
-        if (r > 220 && g > 220 && b > 220) continue;
-        // Any non-white pixel = something was drawn
-        return true;
-      }
-    }
-    return false;
-  } catch (e) {
-    return true; // if we can't check, include it
+  // ════════════════════════════════════════
+  // VTE & INSTRUMENTS
+  // ════════════════════════════════════════
+  sectionHeader('VTE & INSTRUMENTS', C.teal);
+  dataRow('VTE Prophylaxis', d.vte,       'Instruments', d.instruments, C.teal, true);
+  dataRow('Scope Size',      d.scope,     'Special Req.',d.special,     C.teal, false);
+  y += secGap;
+
+  // ════════════════════════════════════════
+  // ATTENDING PREFERENCES
+  // ════════════════════════════════════════
+  sectionHeader('ATTENDING PREFERENCES', C.navy);
+  dataRow('Suture (Fascia)', d.sut_fascia, 'Suture (Skin)', d.sut_skin,   C.navy, true);
+  dataRow('Closure',         d.closure,    'Drain',         d.drain,      C.navy, false);
+  dataRow('Dressing',        d.dressing,   'Glue/Staples',  d.glue,       C.navy, true);
+  dataRow('Music/Setup',     d.music,      'Other',         d.pref_other, C.navy, false);
+  y += secGap;
+
+  // ════════════════════════════════════════
+  // POST-OP ORDERS
+  // ════════════════════════════════════════
+  sectionHeader('POST-OP ORDERS', C.teal);
+  dataRow('Diet',       d.diet,     'Activity',    d.activity,                             C.teal, true);
+  dataRow('IVF',        d.ivf,      'Pain Mgmt',   d.pain,                                 C.teal, false);
+  dataRow('Nausea',     d.nausea,   'Disposition', (d.dispo||'')+(d.disposition?' ('+d.disposition+')':''), C.teal, true);
+  y += secGap;
+
+  // ════════════════════════════════════════
+  // OPERATIVE DATA
+  // ════════════════════════════════════════
+  sectionHeader('OPERATIVE DATA', C.navy);
+  dataRow('Cut Time',    d.cut_time,    'Close Time',  d.close_time,   C.navy, true);
+  dataRow('Total Time',  d.total_time,  'EBL (mL)',    d.ebl,          C.navy, false);
+  dataRow('UOP (mL)',    d.uop,         'Fluids In',   d.fluids,       C.navy, true);
+  dataRow('Transfusion', d.transfusion, 'Cell Saver',  d.cell_saver,   C.navy, false);
+  y += secGap;
+
+  // ════════════════════════════════════════
+  // SPECIMENS & PATHOLOGY
+  // ════════════════════════════════════════
+  sectionHeader('SPECIMENS & PATHOLOGY', C.teal);
+  dataRow('Specimen 1',    d.specimen1, 'Specimen 2',  d.specimen2,  C.teal, true);
+  dataRow('Frozen Section',d.frozen,    'Path Types',  d.path_types, C.teal, false);
+  y += secGap;
+
+  // ════════════════════════════════════════
+  // INTRAOP EVENTS
+  // ════════════════════════════════════════
+  if(d.intraop_events){
+    sectionHeader('⚠  INTRAOP EVENTS / COMPLICATIONS', C.red);
+    textBlock(d.intraop_events, C.red);
+    y += secGap;
   }
+
+  // ════════════════════════════════════════
+  // MISC NOTES
+  // ════════════════════════════════════════
+  if(d.misc_notes){
+    sectionHeader('MISC NOTES', C.navy);
+    textBlock(d.misc_notes, C.navy);
+    y += secGap;
+  }
+
+  // ════════════════════════════════════════
+  // FOOTER
+  // ════════════════════════════════════════
+  checkPage(6);
+  textC(C.grey); pdf.setFont('helvetica','italic'); pdf.setFontSize(7);
+  pdf.text('Generated: ' + new Date().toLocaleString(), pageW - margin - 2, y+4, {align:'right'});
+
+  return pdf.output('datauristring').split(',')[1];
 }
 
-// Compress diagram to small JPEG for GET URL param (~3-5KB)
-function compressDiagram(canvas) {
-  var MAX_W = 200; // small enough to fit in URL, still readable
-  var scale = Math.min(1, MAX_W / canvas.width);
-  var w = Math.round(canvas.width * scale);
-  var h = Math.round(canvas.height * scale);
-  var tmp = document.createElement('canvas');
-  tmp.width = w; tmp.height = h;
-  tmp.getContext('2d').drawImage(canvas, 0, 0, w, h);
-  return tmp.toDataURL('image/jpeg', 0.25);
+// ── Export canvas at full resolution for PDF ──
+function exportCanvasForPDF(canvas) {
+  return canvas.toDataURL('image/png');
 }
+
 
 
 function submitViaForm(url, fields) {
