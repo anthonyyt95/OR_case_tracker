@@ -388,7 +388,7 @@ body { background: var(--bg); font-family: var(--sans); color: var(--ink); font-
     <div class="status-dot" id="statusDot"></div>
     <button class="hbtn hbtn-ghost" id="sheetLinkBtn" onclick="openSheet()" style="display:none;" title="Open Google Sheet">📋</button>
     <button class="hbtn hbtn-ghost" onclick="openSetup()">⚙</button>
-    <button class="hbtn hbtn-save" onclick="saveToSheets()">📊 Save</button>
+    <button class="hbtn hbtn-save" onclick="saveToSheets()">📄 Save</button>
   </div>
 </header>
 
@@ -795,7 +795,7 @@ body { background: var(--bg); font-family: var(--sans); color: var(--ink); font-
 
 <!-- BOTTOM SAVE STRIP -->
 <div class="save-strip">
-  <button class="strip-btn strip-save" onclick="saveToSheets()">📊 Save to Sheets</button>
+  <button class="strip-btn strip-save" onclick="saveToSheets()">📄 Save Case</button>
   <button class="strip-btn strip-pdf" onclick="doPrint()">🖨 PDF</button>
   <button class="strip-btn strip-new" onclick="newCase()">＋ New</button>
   <button class="strip-btn strip-setup" onclick="openSetup()">⚙</button>
@@ -825,29 +825,65 @@ window.addEventListener('load',()=>{
 // SCROLL SPY — highlight active nav pill
 // ══════════════════════════════════════════
 const sections = ['s-case','s-diagram','s-prep','s-meds','s-instruments','s-attending','s-postop','s-opdata','s-specimens','s-notes'];
+
 function initScrollSpy(){
-  const obs = new IntersectionObserver(entries=>{
-    entries.forEach(e=>{
-      if(e.isIntersecting){
-        const id = e.target.id;
-        document.querySelectorAll('.nav-pill').forEach((p,i)=>{
-          p.classList.toggle('active', sections[i]===id);
-        });
-        // scroll nav pill into view
-        const idx = sections.indexOf(id);
-        if(idx>=0){
-          const pill = document.querySelectorAll('.nav-pill')[idx];
-          if(pill) pill.scrollIntoView({behavior:'instant',block:'nearest',inline:'center'});
-        }
-      }
+  // Scroll-position based spy — reliable on all screen sizes.
+  // On each scroll, find the section whose top is closest to the
+  // sticky nav bottom (header+nav height). That section is "active".
+  var ticking = false;
+  function onScroll(){
+    if(ticking) return;
+    ticking = true;
+    requestAnimationFrame(function(){
+      updateActivePill();
+      ticking = false;
     });
-  },{rootMargin:'-40% 0px -55% 0px'});
-  sections.forEach(id=>{const el=document.getElementById(id);if(el)obs.observe(el);});
+  }
+  window.addEventListener('scroll', onScroll, {passive: true});
+  // Also run once on load
+  setTimeout(updateActivePill, 100);
+}
+
+function updateActivePill(){
+  var offset = (document.querySelector('.app-header').offsetHeight || 0)
+             + (document.querySelector('.section-nav').offsetHeight || 0)
+             + 8; // small buffer so section label is clearly in view
+
+  var bestId = sections[0];
+  var bestDist = Infinity;
+
+  sections.forEach(function(id){
+    var el = document.getElementById(id);
+    if(!el) return;
+    var top = el.getBoundingClientRect().top;
+    // We want the section whose top just passed the offset line
+    // i.e. top <= offset, and is the closest from above
+    var dist = offset - top;
+    if(dist >= 0 && dist < bestDist){
+      bestDist = dist;
+      bestId = id;
+    }
+  });
+
+  var pills = document.querySelectorAll('.nav-pill');
+  pills.forEach(function(p, i){
+    var isActive = sections[i] === bestId;
+    p.classList.toggle('active', isActive);
+    if(isActive){
+      p.scrollIntoView({behavior:'instant', block:'nearest', inline:'center'});
+    }
+  });
 }
 function navScrollTo(id){
-  const el=document.getElementById(id);if(!el)return;
-  const offset=document.querySelector('.section-nav').offsetHeight+document.querySelector('.app-header').offsetHeight;
-  window.scrollTo({top:el.offsetTop-offset-8,behavior:'smooth'});
+  var el=document.getElementById(id); if(!el) return;
+  var offset=(document.querySelector('.app-header').offsetHeight||0)
+            +(document.querySelector('.section-nav').offsetHeight||0);
+  window.scrollTo({top: el.offsetTop - offset - 8, behavior:'smooth'});
+  // Immediately highlight the tapped pill without waiting for scroll event
+  var pills = document.querySelectorAll('.nav-pill');
+  pills.forEach(function(p,i){ p.classList.toggle('active', sections[i]===id); });
+  var idx = sections.indexOf(id);
+  if(idx>=0){ var pill=pills[idx]; if(pill) pill.scrollIntoView({behavior:'instant',block:'nearest',inline:'center'}); }
 }
 
 // ══════════════════════════════════════════
@@ -1329,7 +1365,7 @@ async function saveToSheets(){
       diagram: diagramData
     });
 
-    toast('✓ Saved to Sheets + diagram to Drive', 'ok');
+    toast('✓ PDF saved to Drive · row added to Sheet', 'ok');
 
   } catch(err) {
     showSaveError('Save Error', err.message, err.stack || '');
