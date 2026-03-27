@@ -968,17 +968,19 @@ function switchDiagTab(t){
 // ── GitHub-hosted diagram images ──
 // Upload these image files to your GitHub repo and update the URLs below.
 // e.g. https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/images/back.jpg
-const GITHUB_BASE = 'https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/images/';
-const IMG_BACK    = GITHUB_BASE + 'back.jpg';
-const IMG_PELVIS  = GITHUB_BASE + 'pelvis.jpg';
-const IMG_ABDOMEN = GITHUB_BASE + 'abdomen.jpg';
-const IMG_CHEST   = GITHUB_BASE + 'chest.jpg';
+const GITHUB_BASE = 'https://raw.githubusercontent.com/anthonyyt95/OR_case_tracker/main/images/';
+const IMG_BACK    = GITHUB_BASE + 'Back.png';
+const IMG_PELVIS  = GITHUB_BASE + 'Pelvis.png';
+const IMG_ABDOMEN = GITHUB_BASE + 'Abdomen.png';
+const IMG_CHEST   = GITHUB_BASE + 'Chest.png';
+const IMG_HEAD    = GITHUB_BASE + 'Head.png';
 
 const BUILTIN = [
   {id:'back',    label:'Back',    src: IMG_BACK},
   {id:'pelvis',  label:'Pelvis',  src: IMG_PELVIS},
   {id:'abdomen', label:'Abdomen', src: IMG_ABDOMEN},
   {id:'chest',   label:'Chest',   src: IMG_CHEST},
+  {id:'head',    label:'Head',    src: IMG_HEAD}
 ];
 let customDiagrams=[], activeDiagId='back';
 
