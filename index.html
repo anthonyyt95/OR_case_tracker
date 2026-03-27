@@ -96,10 +96,17 @@ body { background: var(--bg); font-family: var(--sans); color: var(--ink); font-
 .section-block {
   background: var(--surface);
   border-radius: var(--radius);
-  overflow: hidden;
+  /* overflow:hidden removed — it breaks position:sticky on child elements */
   margin-bottom: 14px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.07), 0 0 0 1px rgba(0,0,0,0.05);
 }
+/* Re-apply rounded corners to first/last children so content looks clipped */
+.section-block > *:first-child { border-radius: var(--radius) var(--radius) 0 0; overflow: hidden; }
+.section-block > *:last-child  { border-radius: 0 0 var(--radius) var(--radius); overflow: hidden; }
+/* But the sticky toolbar itself must NOT be clipped */
+.section-block > .draw-sticky-toolbar,
+.section-block > .draw-sticky-toolbar ~ * { overflow: visible; }
+.section-block > .dtab-bar { overflow: hidden; }
 .section-block:last-child { margin-bottom: 0; }
 
 .section-label {
@@ -273,6 +280,8 @@ body { background: var(--bg); font-family: var(--sans); color: var(--ink); font-
   z-index: 80;
   background: var(--surface2);
   border-bottom: 1px solid var(--rule);
+  /* Do NOT clip — overflow:hidden would break sticky on mobile */
+  overflow: visible;
 }
 .ct-group { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
 .ct-sep { width: 1px; height: 20px; background: var(--rule); margin: 0 4px; }
@@ -554,7 +563,13 @@ body { background: var(--bg); font-family: var(--sans); color: var(--ink); font-
     <div class="draw-sticky-toolbar">
     <div class="canvas-header">
       <span class="active-diag-name" id="activeDiagName">Anterior</span>
-      <button class="clear-btn" onclick="clearCanvas()">✕ Clear drawing</button>
+      <div style="display:flex;gap:6px;">
+        <button id="diagDrawToggle" onclick="toggleDrawMode('diag')"
+          style="font-family:var(--mono);font-size:11px;padding:4px 10px;border-radius:6px;border:2px solid #e74c3c;background:#fdecea;color:#c0392b;cursor:pointer;font-weight:600;">
+          ✏️ Draw ON
+        </button>
+        <button class="clear-btn" onclick="clearCanvas()">✕ Clear</button>
+      </div>
     </div>
     <div class="canvas-tools">
       <div class="ct-group">
@@ -591,7 +606,13 @@ body { background: var(--bg); font-family: var(--sans); color: var(--ink); font-
     <div class="draw-sticky-toolbar">
     <div class="canvas-header">
       <span class="active-diag-name">Blank Canvas</span>
-      <button class="clear-btn" onclick="clearBlankCanvas()">✕ Clear</button>
+      <div style="display:flex;gap:6px;">
+        <button id="blankDrawToggle" onclick="toggleDrawMode('blank')"
+          style="font-family:var(--mono);font-size:11px;padding:4px 10px;border-radius:6px;border:2px solid #e74c3c;background:#fdecea;color:#c0392b;cursor:pointer;font-weight:600;">
+          ✏️ Draw ON
+        </button>
+        <button class="clear-btn" onclick="clearBlankCanvas()">✕ Clear</button>
+      </div>
     </div>
     <div class="canvas-tools">
       <div class="ct-group">
@@ -839,7 +860,7 @@ function navScrollTo(id){
 //   https://script.google.com/macros/s/AKfycb.../exec
 const EMBEDDED_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyy_Ca6cOLSdVjkjifJyro9B6GnNf2oAxIrgtqWO8Q0pfqH_iBgOK5DSUWYOQOmi0cc/exec';   // ← paste your Apps Script /exec URL here
 const EMBEDDED_USER_NAME  = '';   // ← optionally set your name here
-const EMBEDDED_SHEET_URL  = '';   // ← paste your Google Sheet URL here (docs.google.com/spreadsheets/d/...)
+const EMBEDDED_SHEET_URL  = 'https://docs.google.com/spreadsheets/d/1bsbNPt6g9gXyg_0HmaqPY6cB-3CkrtE2Oi-R9tKXviY/edit?gid=0#gid=0';   // ← paste your Google Sheet URL here (docs.google.com/spreadsheets/d/...)
 // ───────────────────────────────────────────────────────────────────────────
 
 let SCRIPT_URL='', USER_NAME='', SHEET_URL='';
@@ -1046,6 +1067,7 @@ bc.addEventListener('touchmove',e=>{e.preventDefault();bM(e);},{passive:false});
 bc.addEventListener('touchend',bE);
 
 function bS(e){
+  if(!diagDrawEnabled) return;
   const p=getP(e,bc);
   if(tool==='text'){diagSaveState();const t=prompt('Label:');if(t){ctx.font='bold 14px IBM Plex Sans,sans-serif';ctx.fillStyle=color;ctx.fillText(t,p.x,p.y);}return;}
   diagSaveState();
@@ -1142,6 +1164,7 @@ function undoBlank(){
   blankCtx.putImageData(blankUndoStack.pop(),0,0);
 }
 function blankStart(e){
+  if(!blankDrawEnabled) return;
   var p=blankGetPos(e);
   if(blankTool==='text'){var t=prompt('Label:');if(t){blankCtx.font='15px IBM Plex Sans,sans-serif';blankCtx.fillStyle=blankColor;blankCtx.fillText(t,p.x,p.y);}return;}
   blankSaveState();
@@ -1203,6 +1226,54 @@ function syncRichText(el){
     el.setAttribute('data-empty','true');
   } else {
     el.removeAttribute('data-empty');
+  }
+}
+
+
+// ══════════════════════════════════════════
+// DRAW MODE TOGGLE
+// Lets user scroll on mobile without accidental marks
+// ══════════════════════════════════════════
+var diagDrawEnabled = true;
+var blankDrawEnabled = true;
+
+function toggleDrawMode(which) {
+  if (which === 'diag') {
+    diagDrawEnabled = !diagDrawEnabled;
+    var btn = document.getElementById('diagDrawToggle');
+    var canvas = document.getElementById('bodyCanvas');
+    if (diagDrawEnabled) {
+      btn.textContent = '✏️ Draw ON';
+      btn.style.background = '#fdecea';
+      btn.style.borderColor = '#e74c3c';
+      btn.style.color = '#c0392b';
+      canvas.style.touchAction = 'none'; // capture touch for drawing
+      canvas.style.cursor = 'crosshair';
+    } else {
+      btn.textContent = '🚫 Draw OFF';
+      btn.style.background = '#f0f4f8';
+      btn.style.borderColor = '#aaa';
+      btn.style.color = '#777';
+      canvas.style.touchAction = 'auto'; // pass touch to browser = scrolling
+      canvas.style.cursor = 'default';
+    }
+  } else {
+    blankDrawEnabled = !blankDrawEnabled;
+    var btn2 = document.getElementById('blankDrawToggle');
+    var canvas2 = document.getElementById('blankCanvas');
+    if (blankDrawEnabled) {
+      btn2.textContent = '✏️ Draw ON';
+      btn2.style.background = '#fdecea';
+      btn2.style.borderColor = '#e74c3c';
+      btn2.style.color = '#c0392b';
+      if (canvas2) { canvas2.style.touchAction = 'none'; canvas2.style.cursor = 'crosshair'; }
+    } else {
+      btn2.textContent = '🚫 Draw OFF';
+      btn2.style.background = '#f0f4f8';
+      btn2.style.borderColor = '#aaa';
+      btn2.style.color = '#777';
+      if (canvas2) { canvas2.style.touchAction = 'auto'; canvas2.style.cursor = 'default'; }
+    }
   }
 }
 
