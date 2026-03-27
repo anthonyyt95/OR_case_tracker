@@ -60,7 +60,8 @@ body { background: var(--bg); font-family: var(--sans); color: var(--ink); font-
    STICKY SECTION NAV
 ══════════════════════════════ */
 .section-nav {
-  position: sticky; top: var(--header-h); z-index: 90;
+  position: fixed; top: var(--header-h); left: 0; right: 0;
+  height: var(--nav-h); z-index: 90;
   background: var(--accent);
   border-bottom: 1px solid rgba(255,255,255,0.1);
   overflow-x: auto; white-space: nowrap;
@@ -352,39 +353,6 @@ body { background: var(--bg); font-family: var(--sans); color: var(--ink); font-
 .toast.ok { background: #145c30; }
 .toast.err { background: #6b1515; }
 
-/* ── FREE-FORM OVERLAY PAGE ── */
-.freeform-overlay {
-  display: none; position: fixed; inset: 0; z-index: 150;
-  background: var(--bg); flex-direction: column;
-  padding-top: calc(var(--header-h) + var(--nav-h));
-  padding-bottom: calc(70px + env(safe-area-inset-bottom, 0));
-}
-.freeform-overlay.open { display: flex; }
-.freeform-inner { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 12px; max-width: 680px; margin: 0 auto; width: 100%; }
-.freeform-inner .section-block { flex-shrink: 0; }
-.ff-tabs { display: flex; border-bottom: 1px solid var(--rule); background: var(--surface2); }
-.ff-tab { flex: 1; padding: 11px 8px; font-family: var(--mono); font-size: 11px; font-weight: 500; color: var(--ink3); border: none; background: none; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.15s; text-align: center; }
-.ff-tab.active { color: var(--accent); border-bottom-color: var(--accent); background: var(--surface); }
-.ff-pane { display: none; }
-.ff-pane.active { display: block; }
-.ff-write-area { width: 100%; min-height: 500px; border: none; background: transparent; font-family: var(--sans); font-size: 16px; color: var(--ink); padding: 14px; outline: none; resize: none; line-height: 28px; background-image: repeating-linear-gradient(to bottom, transparent, transparent 27px, #d8d4cc 27px, #d8d4cc 28px); background-size: 100% 28px; }
-.ff-canvas-wrap { position: relative; background: white; border-radius: 6px; overflow: hidden; border: 1px solid var(--rule); }
-#ffCanvas { display: block; width: 100%; touch-action: none; cursor: crosshair; }
-.ff-toolbar { display: flex; align-items: center; gap: 6px; padding: 8px 10px; background: var(--surface2); border-bottom: 1px solid var(--rule); flex-wrap: wrap; }
-.ff-tool-btn { font-family: var(--mono); font-size: 11px; padding: 5px 9px; border-radius: 6px; border: 1px solid var(--rule); background: white; color: var(--ink2); cursor: pointer; transition: all 0.12s; white-space: nowrap; }
-.ff-tool-btn:hover, .ff-tool-btn:active { background: var(--surface2); }
-.ff-tool-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
-.ff-swatch { width: 22px; height: 22px; border-radius: 50%; border: 2.5px solid transparent; cursor: pointer; }
-.ff-swatch.active { border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink); }
-.ff-sz { width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--rule); background: white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--ink2); }
-.ff-sz.active { background: var(--accent); color: white; border-color: var(--accent); }
-/* Rich text placeholder */
-[contenteditable][data-empty="true"]::before,
-[contenteditable]:empty::before {
-  content: attr(data-placeholder);
-  color: var(--ink3);
-  pointer-events: none;
-}
 
 @media print {
   .app-header, .section-nav, .save-strip, .modal-overlay, .toast, .dtab-bar, .canvas-tools, .lib-import-row { display: none !important; }
@@ -412,7 +380,6 @@ body { background: var(--bg); font-family: var(--sans); color: var(--ink); font-
   <div class="section-nav-inner">
     <button class="nav-pill active" onclick="navScrollTo('s-case')">Case</button>
     <button class="nav-pill" onclick="navScrollTo('s-diagram')">Diagram</button>
-    <button class="nav-pill" id="pill-freeform" onclick="showFreeForm()">✏️ Free Notes</button>
     <button class="nav-pill" onclick="navScrollTo('s-prep')">Prep</button>
     <button class="nav-pill" onclick="navScrollTo('s-meds')">Meds</button>
     <button class="nav-pill" onclick="navScrollTo('s-instruments')">Instruments</button>
@@ -790,52 +757,6 @@ body { background: var(--bg); font-family: var(--sans); color: var(--ink); font-
 <div style="height:90px;"></div>
 </div><!-- end scroll-body -->
 
-<!-- FREE-FORM OVERLAY PAGE -->
-<div class="freeform-overlay" id="freeformOverlay">
-  <div class="freeform-inner">
-    <div class="section-block">
-      <div class="section-label" style="justify-content:space-between;">
-        <div style="display:flex;align-items:center;gap:8px;"><div class="sl-dot sl-purple"></div><span class="section-label-text">Free-Form Notes</span></div>
-        <button onclick="hideFreeForm()" style="font-family:var(--mono);font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid var(--rule);background:var(--surface2);color:var(--ink3);cursor:pointer;">✕ Close</button>
-      </div>
-      <div class="ff-tabs">
-        <button class="ff-tab active" id="fft-write" onclick="switchFFTab('write')">📝 Write</button>
-        <button class="ff-tab" id="fft-draw" onclick="switchFFTab('draw')">🎨 Draw</button>
-      </div>
-      <!-- Write pane -->
-      <div class="ff-pane active" id="ffp-write">
-        <div class="field-row" style="padding:8px 14px;border-bottom:1px solid var(--rule);">
-          <span class="fr-label" style="padding-top:6px;">Case ref.</span>
-          <textarea class="fr-input" id="ff_ref" rows="1" oninput="ar(this)" placeholder="e.g. Lap Chole 1/1"></textarea>
-        </div>
-        <textarea class="ff-write-area" id="ff_text" placeholder="Write freely — observations, learning points, reminders...&#10;&#10;This page saves with the case."></textarea>
-      </div>
-      <!-- Draw pane -->
-      <div class="ff-pane" id="ffp-draw">
-        <div class="ff-toolbar">
-          <button class="ff-tool-btn active" id="fft_pen" onclick="setFFTool('pen')">✏️ Pen</button>
-          <button class="ff-tool-btn" id="fft_text" onclick="setFFTool('text')">T</button>
-          <button class="ff-tool-btn" id="fft_circle" onclick="setFFTool('circle')">○</button>
-          <button class="ff-tool-btn" id="fft_cross" onclick="setFFTool('cross')">+</button>
-          <button class="ff-tool-btn" id="fft_rect" onclick="setFFTool('rect')">▭</button>
-          <button class="ff-tool-btn" id="fft_arrow" onclick="setFFTool('arrow')">→</button>
-          <button class="ff-tool-btn" id="fft_erase" onclick="setFFTool('erase')">⌫</button>
-          <div style="width:1px;height:18px;background:var(--rule);margin:0 2px;"></div>
-          <div class="ff-swatch active" style="background:#222" id="ffs_black" onclick="setFFColor('#222','ffs_black')"></div>
-          <div class="ff-swatch" style="background:#c0392b" id="ffs_red" onclick="setFFColor('#c0392b','ffs_red')"></div>
-          <div class="ff-swatch" style="background:#1a3a5c" id="ffs_blue" onclick="setFFColor('#1a3a5c','ffs_blue')"></div>
-          <div class="ff-swatch" style="background:#1d6a47" id="ffs_green" onclick="setFFColor('#1d6a47','ffs_green')"></div>
-          <div style="width:1px;height:18px;background:var(--rule);margin:0 2px;"></div>
-          <button class="ff-sz active" id="ffsz1" onclick="setFFSize(2,'ffsz1')">·</button>
-          <button class="ff-sz" id="ffsz2" onclick="setFFSize(4,'ffsz2')">●</button>
-          <button class="ff-sz" id="ffsz3" onclick="setFFSize(8,'ffsz3')">⬤</button>
-          <button class="ff-tool-btn" onclick="clearFFCanvas()" style="margin-left:auto;color:var(--red);">🗑</button>
-        </div>
-        <div class="ff-canvas-wrap"><canvas id="ffCanvas"></canvas></div>
-      </div>
-    </div>
-  </div>
-</div>
 
 <!-- BOTTOM SAVE STRIP -->
 <div class="save-strip">
@@ -1126,147 +1047,6 @@ function setSize(s,id){brushSize=s;document.querySelectorAll('.sz-btn').forEach(
 // ══════════════════════════════════════════
 
 // ══════════════════════════════════════════
-// FREE-FORM OVERLAY
-// ══════════════════════════════════════════
-function showFreeForm(){
-  document.getElementById('freeformOverlay').classList.add('open');
-  // Activate pill
-  document.querySelectorAll('.nav-pill').forEach(p=>p.classList.remove('active'));
-  document.getElementById('pill-freeform').classList.add('active');
-  setTimeout(initFFCanvas, 50);
-}
-function hideFreeForm(){
-  document.getElementById('freeformOverlay').classList.remove('open');
-  // Restore case pill
-  document.querySelectorAll('.nav-pill').forEach(p=>p.classList.remove('active'));
-  document.querySelector('.nav-pill').classList.add('active');
-}
-function switchFFTab(t){
-  ['write','draw'].forEach(id=>{
-    document.getElementById('fft-'+id).classList.toggle('active',id===t);
-    document.getElementById('ffp-'+id).classList.toggle('active',id===t);
-  });
-  if(t==='draw') initFFCanvas();
-}
-
-// Free-form canvas
-var ffCanvas, ffCtx, ffTool='pen', ffColor='#222', ffSize=2;
-var ffDrawing=false, ffLx=0, ffLy=0, ffSx=0, ffSy=0, ffSnap=null;
-
-function initFFCanvas(){
-  ffCanvas = document.getElementById('ffCanvas');
-  if(!ffCanvas) return;
-  ffCtx = ffCanvas.getContext('2d');
-  var wrap = ffCanvas.parentElement;
-  var w = wrap.clientWidth || 340;
-  var h = Math.max(400, window.innerHeight * 0.6);
-  if(ffCanvas.width !== w){
-    ffCanvas.width = w; ffCanvas.height = h;
-    ffCtx.fillStyle = '#fff'; ffCtx.fillRect(0,0,w,h);
-  }
-  ffCanvas.style.height = h + 'px';
-
-  ffCanvas.removeEventListener('mousedown', ffStart);
-  ffCanvas.removeEventListener('mousemove', ffMove);
-  ffCanvas.removeEventListener('mouseup', ffEnd);
-  ffCanvas.removeEventListener('touchstart', ffTouchStart);
-  ffCanvas.removeEventListener('touchmove', ffTouchMove);
-  ffCanvas.removeEventListener('touchend', ffEnd);
-
-  ffCanvas.addEventListener('mousedown', ffStart);
-  ffCanvas.addEventListener('mousemove', ffMove);
-  ffCanvas.addEventListener('mouseup', ffEnd);
-  ffCanvas.addEventListener('touchstart', ffTouchStart, {passive:false});
-  ffCanvas.addEventListener('touchmove', ffTouchMove, {passive:false});
-  ffCanvas.addEventListener('touchend', ffEnd);
-}
-
-function ffGetPos(e){
-  var rect = ffCanvas.getBoundingClientRect();
-  var scx = ffCanvas.width/rect.width, scy = ffCanvas.height/rect.height;
-  var cx = e.touches ? e.touches[0].clientX : e.clientX;
-  var cy = e.touches ? e.touches[0].clientY : e.clientY;
-  return {x:(cx-rect.left)*scx, y:(cy-rect.top)*scy};
-}
-function ffTouchStart(e){ e.preventDefault(); ffStart(e); }
-function ffTouchMove(e){ e.preventDefault(); ffMove(e); }
-
-function ffStart(e){
-  var p = ffGetPos(e);
-  if(ffTool==='text'){
-    var t=prompt('Enter text:');
-    if(t){ffCtx.font='16px IBM Plex Sans,sans-serif';ffCtx.fillStyle=ffColor;ffCtx.fillText(t,p.x,p.y);}
-    return;
-  }
-  ffDrawing=true; ffLx=ffSx=p.x; ffLy=ffSy=p.y;
-  if(['circle','rect','cross','arrow'].includes(ffTool))
-    ffSnap=ffCtx.getImageData(0,0,ffCanvas.width,ffCanvas.height);
-}
-function ffMove(e){
-  if(!ffDrawing) return;
-  var p=ffGetPos(e);
-  if(ffTool==='pen'){
-    ffCtx.globalCompositeOperation='source-over';
-    ffCtx.beginPath();ffCtx.strokeStyle=ffColor;ffCtx.lineWidth=ffSize;ffCtx.lineCap='round';
-    ffCtx.moveTo(ffLx,ffLy);ffCtx.lineTo(p.x,p.y);ffCtx.stroke();
-    ffLx=p.x;ffLy=p.y;
-  } else if(ffTool==='erase'){
-    ffCtx.globalCompositeOperation='destination-out';
-    ffCtx.beginPath();ffCtx.arc(p.x,p.y,ffSize*5,0,Math.PI*2);ffCtx.fill();
-    ffLx=p.x;ffLy=p.y;
-  } else if(ffSnap){
-    ffCtx.globalCompositeOperation='source-over';
-    ffCtx.putImageData(ffSnap,0,0);
-    drawFFShape(ffTool,ffSx,ffSy,p.x,p.y);
-  }
-}
-function ffEnd(){ ffDrawing=false; ffCtx.globalCompositeOperation='source-over'; ffSnap=null; }
-
-function drawFFShape(t,x0,y0,x1,y1){
-  ffCtx.strokeStyle=ffColor; ffCtx.lineWidth=ffSize; ffCtx.lineCap='round';
-  if(t==='circle'){
-    ffCtx.fillStyle=ffColor+'22';
-    var rx=Math.abs(x1-x0)/2||8,ry=Math.abs(y1-y0)/2||8,cx=(x0+x1)/2,cy=(y0+y1)/2;
-    ffCtx.beginPath();ffCtx.ellipse(cx,cy,rx,ry,0,0,Math.PI*2);ffCtx.fill();ffCtx.stroke();
-  } else if(t==='rect'){
-    ffCtx.fillStyle=ffColor+'22';
-    ffCtx.beginPath();ffCtx.rect(x0,y0,x1-x0,y1-y0);ffCtx.fill();ffCtx.stroke();
-  } else if(t==='cross'){
-    var mx=(x0+x1)/2,my=(y0+y1)/2,hw=Math.max(Math.abs(x1-x0)/2,14),hh=Math.max(Math.abs(y1-y0)/2,14);
-    ffCtx.beginPath();ffCtx.moveTo(mx-hw,my);ffCtx.lineTo(mx+hw,my);ffCtx.stroke();
-    ffCtx.beginPath();ffCtx.moveTo(mx,my-hh);ffCtx.lineTo(mx,my+hh);ffCtx.stroke();
-  } else if(t==='arrow'){
-    var a=Math.atan2(y1-y0,x1-x0),L=14;
-    ffCtx.beginPath();ffCtx.moveTo(x0,y0);ffCtx.lineTo(x1,y1);ffCtx.stroke();
-    ffCtx.fillStyle=ffColor;
-    ffCtx.beginPath();ffCtx.moveTo(x1,y1);
-    ffCtx.lineTo(x1-L*Math.cos(a-0.45),y1-L*Math.sin(a-0.45));
-    ffCtx.lineTo(x1-L*Math.cos(a+0.45),y1-L*Math.sin(a+0.45));
-    ffCtx.closePath();ffCtx.fill();
-  }
-}
-function clearFFCanvas(){
-  if(ffCtx) {ffCtx.fillStyle='#fff';ffCtx.fillRect(0,0,ffCanvas.width,ffCanvas.height);}
-}
-function setFFTool(t){
-  ffTool=t;
-  document.querySelectorAll('.ff-tool-btn[id^="fft_"]').forEach(b=>b.classList.remove('active'));
-  var el=document.getElementById('fft_'+t); if(el) el.classList.add('active');
-  if(ffCanvas) ffCanvas.style.cursor=t==='erase'?'cell':t==='text'?'text':'crosshair';
-}
-function setFFColor(c,id){
-  ffColor=c;
-  document.querySelectorAll('.ff-swatch').forEach(s=>s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-}
-function setFFSize(s,id){
-  ffSize=s;
-  document.querySelectorAll('.ff-sz').forEach(b=>b.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-}
-
-
-// ══════════════════════════════════════════
 // UNDO STACK — DIAGRAM CANVAS
 // ══════════════════════════════════════════
 var diagUndoStack = [];
@@ -1423,9 +1203,7 @@ function collectData(){
     path_types:[gv('f_perm')&&'Permanent',gv('f_culture')&&'Culture',gv('f_cyto')&&'Cytology',gv('f_frzn')&&'Frozen'].filter(Boolean).join(', '),
     misc_notes:(function(){var el=document.getElementById('f_misc');return el?el.innerText||el.textContent||'':'';})(),intraop_events:gv('f_intraop'),
     checklist:[gv('f_timeout')&&'Timeout',gv('f_counts')&&'Counts',gv('f_opnote')&&'Op Note',gv('f_family')&&'Family',gv('f_fellow')&&'Fellow'].filter(Boolean).join(', '),
-    body_diagram:bc.toDataURL('image/png'),
-    freeform_text: (document.getElementById('ff_text')||{}).value||'',
-    freeform_ref: (document.getElementById('ff_ref')||{}).value||''
+    body_diagram:bc.toDataURL('image/png')
   };
 }
 
@@ -1641,7 +1419,6 @@ function confirmNewCase(){
   clearCanvas(); diagUndoStack=[];
   clearBlankCanvas(); blankUndoStack=[];
   clearFFCanvas();
-  hideFreeForm();
   toast('New case started');
 }
 function cancelNewCase(){
