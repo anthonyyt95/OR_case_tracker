@@ -1206,28 +1206,40 @@ function initBlankCanvas(){
   var el = document.getElementById('blankCanvas');
   if(!el) return;
 
-  // Set up dimensions only once (or if not yet sized)
   if(!blankCanvasInited){
     blankCanvas = el;
     blankCtx = blankCanvas.getContext('2d');
-    var w = blankCanvas.parentElement.clientWidth || 360;
+
+    // parentElement may be hidden (display:none) on page load, so walk up
+    // to find a visible ancestor width, or fall back to window width
+    var w = 0;
+    var ancestor = blankCanvas.parentElement;
+    while(ancestor && w === 0){
+      w = ancestor.clientWidth || 0;
+      ancestor = ancestor.parentElement;
+    }
+    if(w === 0) w = Math.min(window.innerWidth, 680) - 28; // match .scroll-body max-width
+
     var h = Math.round(w * 1.4);
-    blankCanvas.width = w; blankCanvas.height = h;
-    blankCtx.fillStyle='#fff'; blankCtx.fillRect(0,0,w,h);
-    blankCanvas.style.height = h+'px';
+    blankCanvas.width  = w;
+    blankCanvas.height = h;
+    blankCtx.fillStyle = '#fff';
+    blankCtx.fillRect(0, 0, w, h);
+    blankCanvas.style.height = h + 'px';
 
     blankCanvas.addEventListener('mousedown', blankStart);
     blankCanvas.addEventListener('mousemove', blankMove);
-    blankCanvas.addEventListener('mouseup', blankEnd);
-    blankCanvas.addEventListener('mouseleave', blankEnd);
+    blankCanvas.addEventListener('mouseup',   blankEnd);
+    blankCanvas.addEventListener('mouseleave',blankEnd);
     blankCanvas.addEventListener('touchstart', function(e){e.preventDefault();blankStart(e);},{passive:false});
-    blankCanvas.addEventListener('touchmove', function(e){e.preventDefault();blankMove(e);},{passive:false});
-    blankCanvas.addEventListener('touchend', blankEnd);
+    blankCanvas.addEventListener('touchmove',  function(e){e.preventDefault();blankMove(e);},{passive:false});
+    blankCanvas.addEventListener('touchend',   blankEnd);
     blankCanvasInited = true;
   }
-  // Re-point blankCanvas/blankCtx in case DOM changed (shouldn't happen, but safe)
+
+  // Always keep references current
   blankCanvas = el;
-  blankCtx = blankCanvas.getContext('2d');
+  blankCtx    = blankCanvas.getContext('2d');
 }
 
 function blankGetPos(e){
@@ -1754,11 +1766,11 @@ function hasBlankDrawing() {
     if (!blankCanvas || !blankCtx) return false;
     var w = blankCanvas.width, h = blankCanvas.height;
     if (!w || !h) return false;
-    var stepX = Math.floor(w / 10);
-    var stepY = Math.floor(h / 8);
-    if (!stepX || !stepY) return false;
-    for (var y = stepY; y < h; y += stepY) {
-      for (var x = stepX; x < w; x += stepX) {
+    // Sample a dense 20×20 grid across the full canvas
+    var stepX = Math.max(1, Math.floor(w / 20));
+    var stepY = Math.max(1, Math.floor(h / 20));
+    for (var y = 0; y < h; y += stepY) {
+      for (var x = 0; x < w; x += stepX) {
         var px = blankCtx.getImageData(x, y, 1, 1).data;
         var r = px[0], g = px[1], b = px[2];
         if (r > 220 && g > 220 && b > 220) continue; // near-white background
