@@ -983,7 +983,6 @@ const BUILTIN = [
   {id:'chest',   label:'Chest',   src: IMG_CHEST},
   {id:'head',    label:'Head',    src: IMG_HEAD}
 ];
-
 let customDiagrams=[], activeDiagId='back';
 
 function loadLibrary(){
@@ -1558,20 +1557,53 @@ async function generatePDF(){
     y += needed;
   }
 
-  // ── Image block (canvas → PNG) ──
-  async function imageBlock(canvas, label, borderColor){
-    // Export canvas at full resolution as PNG
+  // ── Single image panel (half-width) ──
+  // panelX = left edge of panel, panelW = panel width (mm)
+  async function imagePanel(canvas, label, borderColor, panelX, panelW){
     const imgData = canvas.toDataURL('image/png');
-    // Natural aspect ratio
-    const aspect = canvas.height / canvas.width;
-    const imgW   = col - 6;
-    const imgH   = imgW * aspect;
-    checkPage(imgH + 8);
-    sectionHeader(label, borderColor);
-    checkPage(imgH + 4);
-    fill(C.white); pdf.rect(margin, y, col, imgH + 4, 'F');
-    pdf.addImage(imgData, 'PNG', margin+3, y+2, imgW, imgH, '', 'FAST');
-    y += imgH + 4 + secGap;
+    const aspect  = canvas.height / canvas.width;
+    const imgW    = panelW - 6;
+    const imgH    = imgW * aspect;
+    // Header bar
+    fill(borderColor); pdf.rect(panelX, y, panelW, 6, 'F');
+    textC(C.white); pdf.setFont('helvetica','bold'); pdf.setFontSize(7);
+    pdf.text(label, panelX+2, y+4.2);
+    // Image area
+    fill(C.white); pdf.rect(panelX, y+6, panelW, imgH+4, 'F');
+    pdf.addImage(imgData, 'PNG', panelX+3, y+8, imgW, imgH, '', 'FAST');
+  }
+
+  // ── Render diagrams: side-by-side if both present ──
+  async function renderDiagrams(){
+    const hasDiag  = hasDiagramDrawing();
+    const hasBlank = hasBlankDrawing();
+    if(!hasDiag && !hasBlank) return;
+
+    const panelW = (col - 4) / 2;
+    const leftX  = margin;
+    const rightX = margin + panelW + 4;
+
+    // Calculate height of tallest panel
+    let maxH = 0;
+    if(hasDiag){
+      const asp = bc.height / bc.width;
+      maxH = Math.max(maxH, (panelW-6)*asp + 10);
+    }
+    if(hasBlank){
+      const asp = blankCanvas.height / blankCanvas.width;
+      maxH = Math.max(maxH, (panelW-6)*asp + 10);
+    }
+    checkPage(maxH + secGap);
+
+    if(hasDiag && hasBlank){
+      await imagePanel(bc,          'PORT / INCISION DIAGRAM', C.teal, leftX,  panelW);
+      await imagePanel(blankCanvas, 'BLANK DRAWING',           C.grey, rightX, panelW);
+    } else if(hasDiag){
+      await imagePanel(bc,          'PORT / INCISION DIAGRAM', C.teal, leftX, panelW);
+    } else {
+      await imagePanel(blankCanvas, 'BLANK DRAWING',           C.grey, leftX, panelW);
+    }
+    y += maxH + secGap;
   }
 
   // ── Divider line ──
@@ -1633,14 +1665,9 @@ async function generatePDF(){
   y += secGap;
 
   // ════════════════════════════════════════
-  // DIAGRAMS (raster — canvas export)
+  // DIAGRAMS (side-by-side panels)
   // ════════════════════════════════════════
-  if(hasDiagramDrawing()){
-    await imageBlock(bc, 'PORT / INCISION DIAGRAM', C.teal);
-  }
-  if(hasBlankDrawing()){
-    await imageBlock(blankCanvas, 'BLANK DRAWING', C.grey);
-  }
+  await renderDiagrams();
 
   // ════════════════════════════════════════
   // ANTIBIOTICS & MEDICATIONS
@@ -1982,3 +2009,5 @@ function toast(msg,type=''){
 </script>
 </body>
 </html>
+
+
