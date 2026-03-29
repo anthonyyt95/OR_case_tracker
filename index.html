@@ -504,6 +504,26 @@ body { background: var(--bg); font-family: var(--sans); color: var(--ink); font-
       <div class="cf-label">Date</div>
       <textarea class="cf-input ta" id="f_date" rows="1" placeholder="__/__/__" oninput="ar(this)"></textarea>
     </div>
+    <div>
+      <div class="cf-label">Room</div>
+      <textarea class="cf-input ta" id="f_room" rows="1" placeholder="OR #" oninput="ar(this)"></textarea>
+    </div>
+    <div>
+      <div class="cf-label">Start Time</div>
+      <textarea class="cf-input ta" id="f_time" rows="1" placeholder="07:30" oninput="ar(this)"></textarea>
+    </div>
+    <div>
+      <div class="cf-label">ASA Class</div>
+      <textarea class="cf-input ta" id="f_asa" rows="1" placeholder="I – V" oninput="ar(this)"></textarea>
+    </div>
+    <div class="case-field-full">
+      <div class="cf-label">Patient MRN</div>
+      <textarea class="cf-input ta" id="f_mrn" rows="1" oninput="ar(this)"></textarea>
+    </div>
+    <div class="case-field-full">
+      <div class="cf-label">Age / Sex</div>
+      <textarea class="cf-input ta" id="f_age" rows="1" oninput="ar(this)"></textarea>
+    </div>
     <div class="case-field-full">
       <div class="cf-label">Attending</div>
       <textarea class="cf-input ta" id="f_attending" rows="1" oninput="ar(this)"></textarea>
@@ -513,8 +533,8 @@ body { background: var(--bg); font-family: var(--sans); color: var(--ink); font-
       <textarea class="cf-input ta" id="f_procedure" rows="1" oninput="ar(this)"></textarea>
     </div>
     <div class="case-field-full">
-      <div class="cf-label">Age / Sex</div>
-      <textarea class="cf-input ta" id="f_age" rows="1" oninput="ar(this)"></textarea>
+      <div class="cf-label">Anesthesia Type</div>
+      <textarea class="cf-input ta" id="f_anesthesia" rows="1" oninput="ar(this)"></textarea>
     </div>
   </div>
 </div>
@@ -1406,30 +1426,7 @@ async function saveToSheets(){
       misc_notes: data.misc_notes
     };
 
-    // 3. Send PDF + index data to Apps Script via GET
-    //    PDF is base64 — split into chunks if needed, but PDFs are typically
-    //    50-200KB base64. We send via POST (no-cors) for the PDF bytes,
-    //    and a separate GET for the index data + PDF link back.
-    //    Simplest: send everything as one POST, Apps Script saves PDF and
-    //    returns nothing (no-cors) — we assume success.
-    //    For confirmation, do a GET ping first to verify the URL works.
-
-    // Verify URL is reachable
-    let reachable = false;
-    try {
-      const ping = await fetch(SCRIPT_URL + '?action=ping', { method: 'GET' });
-      if(ping.ok) reachable = true;
-    } catch(e) { /* unreachable */ }
-
-    if(!reachable){
-      showSaveError('Cannot reach script URL',
-        'Make sure you have internet and the URL is correct.',
-        'URL: ' + SCRIPT_URL + '\n\nMust end in /exec and be deployed with "Anyone" access.');
-      return;
-    }
-
     // Single POST: sends PDF to Drive AND writes the sheet row.
-    // The GET saverow has been removed to prevent double entries.
 
     const fd = new FormData();
     fd.append('action', 'savepdf');
@@ -1849,7 +1846,7 @@ function submitViaForm(url, fields) {
 }
 
 
-function debugSaveTest(){
+async function debugSaveTest(){
   if(!SCRIPT_URL){ alert('No URL configured. Open Setup first.'); return; }
 
   const btn = document.getElementById('debugTestBtn');
@@ -1857,74 +1854,54 @@ function debugSaveTest(){
   btn.textContent = 'Testing...'; btn.disabled = true;
   out.textContent = '';
 
-  // Check if running from a real hosted URL or a local/srcdoc context
   const loc = window.location.href;
   const isLocal = loc.startsWith('file://') || loc.startsWith('about:') || loc.startsWith('blob:');
   if(isLocal){
     out.textContent = [
       '⚠ Cannot connect from a local file.',
       '',
-      'You are opening the HTML file directly from your computer or',
-      'phone (file:// or about:srcdoc). Browsers block all network',
-      'requests from local files for security.',
+      'Open the GitHub Pages URL in your browser and run the test from there.',
       '',
-      'TO FIX:',
-      '1. Upload or_sheet_v7.html to GitHub Pages as index.html',
-      '2. Open the GitHub Pages URL in Safari',
-      '   (e.g. https://yourname.github.io/or-sheet)',
-      '3. Run this test again from that URL',
-      '',
-      'Your current URL:',
-      loc
+      'Your current URL:', loc
     ].join('\n');
     btn.textContent = '🔬 Test Again'; btn.disabled = false;
     return;
   }
 
-  const url = SCRIPT_URL;
-  const testData = JSON.stringify({
-    timestamp: new Date().toISOString(),
-    user: 'DEBUG',
-    date: 'DEBUG',
+  out.textContent = 'Page URL: '   + loc + '\n';
+  out.textContent += 'Script URL: ' + SCRIPT_URL + '\n';
+
+  // Build a minimal fake PDF and send via no-cors POST (same path as real save)
+  const fakePdf = btoa('%PDF-1.4\n%%EOF');
+  const fakeData = JSON.stringify({
+    date: new Date().toLocaleDateString(),
+    start_time: '',
+    room: '',
+    attending: 'Debug Test',
     procedure: 'DEBUG TEST — delete this row',
     misc_notes: 'Sent at ' + new Date().toLocaleTimeString()
   });
 
-  out.textContent = 'Page URL: ' + loc + '\n';
-  out.textContent += 'Script URL: ' + url + '\n';
+  const fd = new FormData();
+  fd.append('action', 'savepdf');
+  fd.append('pdf',    fakePdf);
+  fd.append('data',   fakeData);
 
-  // Step 1: GET ping
-  out.textContent += '\nStep 1: GET ping...';
-  fetch(url, { method: 'GET' })
-    .then(function(r){ return r.text(); })
-    .then(function(txt){
-      out.textContent += ' OK';
-      out.textContent += '\nResponse: ' + txt.slice(0, 300);
-      step2();
-    })
-    .catch(function(err){
-      out.textContent += ' FAILED\nError: ' + err.message;
-      out.textContent += '\n\nURL is unreachable. Check:';
-      out.textContent += '\n• Deployed with "Who has access: Anyone"';
-      out.textContent += '\n• URL ends in /exec (not /dev)';
-      out.textContent += '\n• Try opening the URL directly in Safari';
-      btn.textContent = '🔬 Test Again'; btn.disabled = false;
-    });
-
-  // Step 2: iframe form POST
-  function step2(){
-    out.textContent += '\n\nStep 2: Form POST...';
-    submitViaForm(url, { data: testData })
-      .then(function(){
-        out.textContent += ' sent.';
-        out.textContent += '\n\nCheck your Google Sheet now.';
-        out.textContent += '\nLook for a row with "DEBUG TEST" in Procedure column.';
-        out.textContent += '\n\nIf no row appears after 10 seconds:';
-        out.textContent += '\n• In Apps Script editor → Executions (left sidebar)';
-        out.textContent += '\n• Look for errors in the most recent execution';
-        btn.textContent = '🔬 Test Again'; btn.disabled = false;
-      });
+  try {
+    out.textContent += '\nSending test save (no-cors POST)...';
+    await fetch(SCRIPT_URL, { method: 'POST', body: fd, mode: 'no-cors' });
+    out.textContent += ' sent.\n';
+    out.textContent += '\nCheck your Google Sheet and Drive folder now.\n';
+    out.textContent += 'Look for a row with "DEBUG TEST" in the Procedure column.\n';
+    out.textContent += '\nIf nothing appears after ~15 seconds:\n';
+    out.textContent += '• Open Apps Script → Executions (left sidebar)\n';
+    out.textContent += '• Check for errors in the most recent execution\n';
+    out.textContent += '• Make sure you redeployed after your last code change';
+  } catch(err) {
+    out.textContent += ' FAILED\nError: ' + err.message;
   }
+
+  btn.textContent = '🔬 Test Again'; btn.disabled = false;
 }
 
 
@@ -1989,6 +1966,7 @@ function toast(msg,type=''){
 </script>
 </body>
 </html>
+
 
 
 
