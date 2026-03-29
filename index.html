@@ -985,6 +985,7 @@ const BUILTIN = [
 ];
 let customDiagrams=[], activeDiagId='back';
 
+
 function loadLibrary(){
   try{customDiagrams=JSON.parse(localStorage.getItem('orLibrary')||'[]');}catch(e){customDiagrams=[];}
   renderLibrary();
@@ -1537,7 +1538,14 @@ async function generatePDF(){
   // ── Single image panel (half-width) ──
   // panelX = left edge of panel, panelW = panel width (mm)
   async function imagePanel(canvas, label, borderColor, panelX, panelW){
-    const imgData = canvas.toDataURL('image/png');
+    // Export at half resolution as JPEG — much smaller than full-res PNG,
+    // still sharp enough for a diagram printed at half page width.
+    const scale  = 0.5;
+    const tmp    = document.createElement('canvas');
+    tmp.width    = Math.round(canvas.width  * scale);
+    tmp.height   = Math.round(canvas.height * scale);
+    tmp.getContext('2d').drawImage(canvas, 0, 0, tmp.width, tmp.height);
+    const imgData = tmp.toDataURL('image/jpeg', 0.85);
     const aspect  = canvas.height / canvas.width;
     const imgW    = panelW - 6;
     const imgH    = imgW * aspect;
@@ -1547,7 +1555,7 @@ async function generatePDF(){
     pdf.text(label, panelX+2, y+4.2);
     // Image area
     fill(C.white); pdf.rect(panelX, y+6, panelW, imgH+4, 'F');
-    pdf.addImage(imgData, 'PNG', panelX+3, y+8, imgW, imgH, '', 'FAST');
+    pdf.addImage(imgData, 'JPEG', panelX+3, y+8, imgW, imgH, '', 'FAST');
   }
 
   // ── Render diagrams: side-by-side if both present ──
@@ -1966,7 +1974,4 @@ function toast(msg,type=''){
 </script>
 </body>
 </html>
-
-
-
 
