@@ -96,19 +96,14 @@ body { background: var(--bg); font-family: var(--sans); color: var(--ink); font-
 .section-block {
   background: var(--surface);
   border-radius: var(--radius);
-  /* overflow:hidden removed — it breaks position:sticky on child elements */
   margin-bottom: 14px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.07), 0 0 0 1px rgba(0,0,0,0.05);
 }
-/* Re-apply rounded corners to first/last children so content looks clipped */
 .section-block > *:first-child { border-radius: var(--radius) var(--radius) 0 0; overflow: hidden; }
-/* last-child: round corners but do NOT clip dtab-pane — it contains sticky toolbars */
 .section-block > *:last-child:not(.dtab-pane) { border-radius: 0 0 var(--radius) var(--radius); overflow: hidden; }
-/* sticky toolbars and their siblings must never be clipped */
 .section-block > .draw-sticky-toolbar,
 .section-block > .draw-sticky-toolbar ~ * { overflow: visible; }
 .section-block > .dtab-bar { overflow: hidden; }
-/* dtab-panes themselves must not clip sticky children */
 .dtab-pane { overflow: visible; }
 .section-block:last-child { margin-bottom: 0; }
 
@@ -283,7 +278,6 @@ body { background: var(--bg); font-family: var(--sans); color: var(--ink); font-
   z-index: 80;
   background: var(--surface2);
   border-bottom: 1px solid var(--rule);
-  /* Do NOT clip — overflow:hidden would break sticky on mobile */
   overflow: visible;
 }
 .ct-group { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
@@ -466,6 +460,7 @@ body { background: var(--bg); font-family: var(--sans); color: var(--ink); font-
     <button class="form-cancel" onclick="cancelNewCase()">Cancel</button>
   </div>
 </div>
+
 <div class="modal-overlay" id="diagInfoModal">
   <div class="modal-sheet">
     <div class="modal-handle"></div>
@@ -828,7 +823,7 @@ window.addEventListener('load',()=>{
     dateEl.value = (now.getMonth()+1) + '/' + now.getDate() + '/' + String(now.getFullYear()).slice(2);
     ar(dateEl);
   }
-  // Modal overlay close handlers — must be inside load so DOM exists
+  // Modal overlay close handlers
   document.getElementById('setupModal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeSetup();});
   document.getElementById('diagInfoModal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeDiagInfo();});
   document.getElementById('newCaseModal').addEventListener('click',e=>{if(e.target===e.currentTarget)cancelNewCase();});
@@ -836,14 +831,11 @@ window.addEventListener('load',()=>{
 });
 
 // ══════════════════════════════════════════
-// SCROLL SPY — highlight active nav pill
+// SCROLL SPY
 // ══════════════════════════════════════════
 const sections = ['s-case','s-diagram','s-prep','s-meds','s-instruments','s-attending','s-postop','s-opdata','s-specimens','s-notes'];
 
 function initScrollSpy(){
-  // Scroll-position based spy — reliable on all screen sizes.
-  // On each scroll, find the section whose top is closest to the
-  // sticky nav bottom (header+nav height). That section is "active".
   var ticking = false;
   function onScroll(){
     if(ticking) return;
@@ -854,14 +846,13 @@ function initScrollSpy(){
     });
   }
   window.addEventListener('scroll', onScroll, {passive: true});
-  // Also run once on load
   setTimeout(updateActivePill, 100);
 }
 
 function updateActivePill(){
   var offset = (document.querySelector('.app-header').offsetHeight || 0)
              + (document.querySelector('.section-nav').offsetHeight || 0)
-             + 8; // small buffer so section label is clearly in view
+             + 8;
 
   var bestId = sections[0];
   var bestDist = Infinity;
@@ -870,8 +861,6 @@ function updateActivePill(){
     var el = document.getElementById(id);
     if(!el) return;
     var top = el.getBoundingClientRect().top;
-    // We want the section whose top just passed the offset line
-    // i.e. top <= offset, and is the closest from above
     var dist = offset - top;
     if(dist >= 0 && dist < bestDist){
       bestDist = dist;
@@ -888,12 +877,12 @@ function updateActivePill(){
     }
   });
 }
+
 function navScrollTo(id){
   var el=document.getElementById(id); if(!el) return;
   var offset=(document.querySelector('.app-header').offsetHeight||0)
             +(document.querySelector('.section-nav').offsetHeight||0);
   window.scrollTo({top: el.offsetTop - offset - 8, behavior:'smooth'});
-  // Immediately highlight the tapped pill without waiting for scroll event
   var pills = document.querySelectorAll('.nav-pill');
   pills.forEach(function(p,i){ p.classList.toggle('active', sections[i]===id); });
   var idx = sections.indexOf(id);
@@ -903,15 +892,9 @@ function navScrollTo(id){
 // ══════════════════════════════════════════
 // CONFIG
 // ══════════════════════════════════════════
-
-// ─── PASTE YOUR APPS SCRIPT URL HERE ───────────────────────────────────────
-// Replace the empty string with your deployed Web App URL so you never have
-// to enter it manually. The URL looks like:
-//   https://script.google.com/macros/s/AKfycb.../exec
-const EMBEDDED_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzxpaYuIfzKq-G43yztV1JeN80LhCS34duzLFxej4WaRYUC25OSPhHRzZsjEIER6IKX/exec';   // ← paste your Apps Script /exec URL here
-const EMBEDDED_USER_NAME  = '';   // ← optionally set your name here
-const EMBEDDED_SHEET_URL  = 'https://docs.google.com/spreadsheets/d/1pemMx5Fo06IQ-gjnZNSijrL68mvCfAT4qCC61N5Zpwg/edit?gid=0#gid=0';   // ← paste your Google Sheet URL here (docs.google.com/spreadsheets/d/...)
-// ───────────────────────────────────────────────────────────────────────────
+const EMBEDDED_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzxpaYuIfzKq-G43yztV1JeN80LhCS34duzLFxej4WaRYUC25OSPhHRzZsjEIER6IKX/exec';
+const EMBEDDED_USER_NAME  = '';
+const EMBEDDED_SHEET_URL  = 'https://docs.google.com/spreadsheets/d/1pemMx5Fo06IQ-gjnZNSijrL68mvCfAT4qCC61N5Zpwg/edit?gid=0#gid=0';
 
 let SCRIPT_URL='', USER_NAME='', SHEET_URL='';
 function loadConfig(){
@@ -923,7 +906,6 @@ function loadConfig(){
   if(EMBEDDED_SCRIPT_URL){
     document.getElementById('statusDot').title='Sheets connected (embedded)';
   }
-  // Show/hide sheet link button
   var sheetBtn = document.getElementById('sheetLinkBtn');
   if(sheetBtn) sheetBtn.style.display = SHEET_URL ? 'inline-block' : 'none';
 }
@@ -966,9 +948,6 @@ function switchDiagTab(t){
 // ══════════════════════════════════════════
 // DIAGRAM LIBRARY
 // ══════════════════════════════════════════
-// ── GitHub-hosted diagram images ──
-// Upload these image files to your GitHub repo and update the URLs below.
-// e.g. https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/images/back.jpg
 const GITHUB_BASE = 'https://raw.githubusercontent.com/anthonyyt95/OR_case_tracker/main/images/';
 const IMG_BACK    = GITHUB_BASE + 'Back.png';
 const IMG_PELVIS  = GITHUB_BASE + 'Pelvis.png';
@@ -984,7 +963,6 @@ const BUILTIN = [
   {id:'head',    label:'Head',    src: IMG_HEAD}
 ];
 let customDiagrams=[], activeDiagId='back';
-
 
 function loadLibrary(){
   try{customDiagrams=JSON.parse(localStorage.getItem('orLibrary')||'[]');}catch(e){customDiagrams=[];}
@@ -1005,7 +983,6 @@ function renderLibrary(){
   });
   customDiagrams.forEach((d,i)=>{
     const item=document.createElement('div'); item.className='lib-item'+(d.id===activeDiagId?' active':'');
-    // SVGs render as img directly; raster images too
     const imgTag=`<img class="lib-thumb" src="${d.src}" alt="${d.label}">`;
     item.innerHTML=`${imgTag}<div class="lib-name">${d.label}</div><button class="lib-del" onclick="delCustom(${i});event.stopPropagation()">×</button>`;
     item.onclick=()=>setActiveDiagramCustom(d.id);
@@ -1051,7 +1028,6 @@ function delCustom(i){
   else{renderLibrary();}
 }
 
-// ── Import raster image ──
 function importImage(e){
   const file=e.target.files[0]; if(!file)return;
   const name=prompt('Name this diagram:',file.name.replace(/\.[^.]+$/,''))||file.name;
@@ -1072,17 +1048,12 @@ function importImage(e){
   reader.readAsDataURL(file); e.target.value='';
 }
 
-// ── Import SVG ──
 function importSVG(e){
   const file=e.target.files[0]; if(!file)return;
   const name=prompt('Name this diagram:',file.name.replace(/\.svg$/i,''))||file.name;
   const reader=new FileReader();
   reader.onload=ev=>{
-    // Store as data URL — SVGs can be used as img src directly
     const svgText=ev.target.result;
-    const blob=new Blob([svgText],{type:'image/svg+xml'});
-    const src=URL.createObjectURL(blob);
-    // Also store the raw SVG text so it persists in localStorage
     const b64='data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(svgText)));
     const id='sv_'+Date.now();
     customDiagrams.push({id,label:name,src:b64,type:'svg'});
@@ -1101,17 +1072,14 @@ let tool='pen',color='#c0392b',brushSize=2;
 let drawing=false,lx=0,ly=0,sx=0,sy=0,snap=null;
 
 function resizeCanvasToImage(img){
-  // Set canvas internal resolution to match image natural aspect ratio
   const containerW = bc.parentElement ? bc.parentElement.clientWidth : 600;
   const naturalRatio = img.naturalHeight / img.naturalWidth;
-  bc.width  = 1200; // high-res internal buffer
+  bc.width  = 1200;
   bc.height = Math.round(1200 * naturalRatio);
-  // Set display size to fill container width at correct aspect
   bc.style.width  = containerW + 'px';
   bc.style.height = Math.round(containerW * naturalRatio) + 'px';
 }
 function resizeCanvas(){
-  // Called on window resize — maintain current aspect
   const containerW = bc.parentElement ? bc.parentElement.clientWidth : 600;
   const currentRatio = bc.height / bc.width;
   bc.style.width  = containerW + 'px';
@@ -1175,10 +1143,6 @@ function setColor(c,id){color=c;document.querySelectorAll('.cswatch').forEach(s=
 function setSize(s,id){brushSize=s;document.querySelectorAll('.sz-btn').forEach(b=>b.classList.remove('active'));document.getElementById(id).classList.add('active');}
 
 // ══════════════════════════════════════════
-// BUILT-IN DIAGRAM DRAWERS
-// ══════════════════════════════════════════
-
-// ══════════════════════════════════════════
 // UNDO STACK — DIAGRAM CANVAS
 // ══════════════════════════════════════════
 var diagUndoStack = [];
@@ -1210,15 +1174,13 @@ function initBlankCanvas(){
     blankCanvas = el;
     blankCtx = blankCanvas.getContext('2d');
 
-    // parentElement may be hidden (display:none) on page load, so walk up
-    // to find a visible ancestor width, or fall back to window width
     var w = 0;
     var ancestor = blankCanvas.parentElement;
     while(ancestor && w === 0){
       w = ancestor.clientWidth || 0;
       ancestor = ancestor.parentElement;
     }
-    if(w === 0) w = Math.min(window.innerWidth, 680) - 28; // match .scroll-body max-width
+    if(w === 0) w = Math.min(window.innerWidth, 680) - 28;
 
     var h = Math.round(w * 1.4);
     blankCanvas.width  = w;
@@ -1237,7 +1199,6 @@ function initBlankCanvas(){
     blankCanvasInited = true;
   }
 
-  // Always keep references current
   blankCanvas = el;
   blankCtx    = blankCanvas.getContext('2d');
 }
@@ -1309,13 +1270,11 @@ function setBlankSize(s,id){
 // RICH TEXT — MISC NOTES
 // ══════════════════════════════════════════
 function rtCmd(cmd){
-  // Ensure the contenteditable div is focused
   var el = document.getElementById('f_misc');
   el.focus();
   document.execCommand(cmd, false, null);
 }
 function syncRichText(el){
-  // Show placeholder when empty
   if(el.innerHTML === '' || el.innerHTML === '<br>'){
     el.setAttribute('data-empty','true');
   } else {
@@ -1323,10 +1282,8 @@ function syncRichText(el){
   }
 }
 
-
 // ══════════════════════════════════════════
 // DRAW MODE TOGGLE
-// Lets user scroll on mobile without accidental marks
 // ══════════════════════════════════════════
 var diagDrawEnabled = true;
 var blankDrawEnabled = true;
@@ -1341,14 +1298,14 @@ function toggleDrawMode(which) {
       btn.style.background = '#fdecea';
       btn.style.borderColor = '#e74c3c';
       btn.style.color = '#c0392b';
-      canvas.style.touchAction = 'none'; // capture touch for drawing
+      canvas.style.touchAction = 'none';
       canvas.style.cursor = 'crosshair';
     } else {
       btn.textContent = '🚫 Draw OFF';
       btn.style.background = '#f0f4f8';
       btn.style.borderColor = '#aaa';
       btn.style.color = '#777';
-      canvas.style.touchAction = 'auto'; // pass touch to browser = scrolling
+      canvas.style.touchAction = 'auto';
       canvas.style.cursor = 'default';
     }
   } else {
@@ -1371,7 +1328,9 @@ function toggleDrawMode(which) {
   }
 }
 
-
+// ══════════════════════════════════════════
+// COLLECT DATA
+// ══════════════════════════════════════════
 function collectData(){
   return{
     timestamp:new Date().toISOString(),user:USER_NAME,
@@ -1401,6 +1360,9 @@ function collectData(){
   };
 }
 
+// ══════════════════════════════════════════
+// SAVE TO SHEETS — uses submitViaForm (fixes CORS/fetch error)
+// ══════════════════════════════════════════
 async function saveToSheets(){
   if(!SCRIPT_URL){ openSetup(); toast('Configure Google Sheets first','err'); return; }
 
@@ -1416,7 +1378,7 @@ async function saveToSheets(){
 
     btn.textContent = '⏳ Saving…';
 
-    // 2. Collect minimal index data (no diagram — already in PDF)
+    // 2. Collect minimal index data
     const data = collectData();
     const indexData = {
       date:       data.date,
@@ -1427,14 +1389,12 @@ async function saveToSheets(){
       misc_notes: data.misc_notes
     };
 
-    // Single POST: sends PDF to Drive AND writes the sheet row.
-
-    const fd = new FormData();
-    fd.append('action', 'savepdf');
-    fd.append('pdf',    pdfBase64);
-    fd.append('data',   JSON.stringify(indexData));
-    // no-cors POST — we can't read the response but it arrives
-    await fetch(SCRIPT_URL, { method: 'POST', body: fd, mode: 'no-cors' });
+    // 3. Send via hidden form POST — avoids CORS/fetch failures with GAS
+    await submitViaForm(SCRIPT_URL, {
+      action: 'savepdf',
+      pdf:    pdfBase64,
+      data:   JSON.stringify(indexData)
+    });
 
     toast('✓ PDF sent to Drive · row added to Sheet', 'ok');
 
@@ -1446,23 +1406,76 @@ async function saveToSheets(){
   }
 }
 
-// ── Generate PDF using native jsPDF (vector text + raster images) ──
+// ══════════════════════════════════════════
+// SUBMIT VIA HIDDEN FORM (CORS-free GAS POST)
+// ══════════════════════════════════════════
+function submitViaForm(url, fields) {
+  return new Promise(function(resolve) {
+    var iframeName = 'orFrame' + Date.now();
+
+    var form = document.createElement('form');
+    form.setAttribute('method', 'POST');
+    form.setAttribute('action', url);
+    form.setAttribute('target', iframeName);
+    form.style.cssText = 'display:none;position:absolute;left:-9999px';
+
+    for (var key in fields) {
+      if (fields.hasOwnProperty(key)) {
+        var input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = fields[key] || '';
+        form.appendChild(input);
+      }
+    }
+    document.body.appendChild(form);
+
+    var iframe = document.createElement('iframe');
+    iframe.name = iframeName;
+    iframe.style.cssText = 'display:none;width:0;height:0;position:absolute;left:-9999px';
+
+    function cleanup() {
+      try { document.body.removeChild(form); } catch(e){}
+      try { document.body.removeChild(iframe); } catch(e){}
+    }
+
+    var loaded = false;
+    iframe.onload = function() {
+      if (!loaded) {
+        loaded = true;
+        return;
+      }
+      setTimeout(cleanup, 1000);
+      resolve();
+    };
+
+    document.body.appendChild(iframe);
+
+    setTimeout(function() {
+      form.submit();
+      // Fallback: resolve after 12s regardless
+      setTimeout(function() { cleanup(); resolve(); }, 12000);
+    }, 100);
+  });
+}
+
+// ══════════════════════════════════════════
+// GENERATE PDF
+// ══════════════════════════════════════════
 async function generatePDF(){
   const { jsPDF } = window.jspdf;
 
   const d = collectData();
 
-  // Page layout constants (mm)
   const pageW  = 210;
   const pageH  = 297;
   const margin = 12;
-  const col    = pageW - margin * 2;  // usable width
-  const rowH   = 6;     // standard text row height
-  const secGap = 4;     // gap between sections
+  const col    = pageW - margin * 2;
+  const rowH   = 6;
+  const secGap = 4;
 
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
-  // ── Colour palette ──
   const C = {
     navy:   [28,  63, 94],
     teal:   [13, 110, 110],
@@ -1475,12 +1488,10 @@ async function generatePDF(){
     stripe: [244,241,236],
   };
 
-  // Helper: set fill colour from array
   function fill(c){ pdf.setFillColor(c[0],c[1],c[2]); }
   function stroke(c){ pdf.setDrawColor(c[0],c[1],c[2]); }
   function textC(c){ pdf.setTextColor(c[0],c[1],c[2]); }
 
-  // ── Cursor tracking with auto page-break ──
   let y = margin;
   function checkPage(needed){
     if(y + needed > pageH - margin){
@@ -1489,7 +1500,6 @@ async function generatePDF(){
     }
   }
 
-  // ── Section header bar ──
   function sectionHeader(title, color){
     checkPage(8);
     fill(color); pdf.rect(margin, y, col, 6, 'F');
@@ -1499,7 +1509,6 @@ async function generatePDF(){
     y += 6;
   }
 
-  // ── Two-column label/value row ──
   function dataRow(label, value, label2, value2, colorAccent, even){
     if(!value && !value2) return;
     const bg = even ? C.white : C.stripe;
@@ -1523,7 +1532,6 @@ async function generatePDF(){
     y += rowH;
   }
 
-  // ── Full-width text block (wraps) ──
   function textBlock(text, colorAccent){
     if(!text) return;
     pdf.setFont('helvetica','normal'); pdf.setFontSize(8); textC(C.black);
@@ -1535,11 +1543,7 @@ async function generatePDF(){
     y += needed;
   }
 
-  // ── Single image panel (half-width) ──
-  // panelX = left edge of panel, panelW = panel width (mm)
   async function imagePanel(canvas, label, borderColor, panelX, panelW){
-    // Export at half resolution as JPEG — much smaller than full-res PNG,
-    // still sharp enough for a diagram printed at half page width.
     const scale  = 0.5;
     const tmp    = document.createElement('canvas');
     tmp.width    = Math.round(canvas.width  * scale);
@@ -1549,16 +1553,13 @@ async function generatePDF(){
     const aspect  = canvas.height / canvas.width;
     const imgW    = panelW - 6;
     const imgH    = imgW * aspect;
-    // Header bar
     fill(borderColor); pdf.rect(panelX, y, panelW, 6, 'F');
     textC(C.white); pdf.setFont('helvetica','bold'); pdf.setFontSize(7);
     pdf.text(label, panelX+2, y+4.2);
-    // Image area
     fill(C.white); pdf.rect(panelX, y+6, panelW, imgH+4, 'F');
     pdf.addImage(imgData, 'JPEG', panelX+3, y+8, imgW, imgH, '', 'FAST');
   }
 
-  // ── Render diagrams: side-by-side if both present ──
   async function renderDiagrams(){
     const hasDiag  = hasDiagramDrawing();
     const hasBlank = hasBlankDrawing();
@@ -1568,7 +1569,6 @@ async function generatePDF(){
     const leftX  = margin;
     const rightX = margin + panelW + 4;
 
-    // Calculate height of tallest panel
     let maxH = 0;
     if(hasDiag){
       const asp = bc.height / bc.width;
@@ -1591,15 +1591,12 @@ async function generatePDF(){
     y += maxH + secGap;
   }
 
-  // ── Divider line ──
   function divider(){
     stroke([220,220,220]); pdf.setLineWidth(0.2);
     pdf.line(margin, y, margin+col, y);
   }
 
-  // ════════════════════════════════════════
   // PAGE HEADER
-  // ════════════════════════════════════════
   fill(C.navy); pdf.rect(margin, y, col, 10, 'F');
   textC(C.white);
   pdf.setFont('helvetica','bold'); pdf.setFontSize(14);
@@ -1609,7 +1606,6 @@ async function generatePDF(){
   pdf.text(headerMeta, pageW - margin - 4, y+7, {align:'right'});
   y += 10;
 
-  // Sub-header bar
   fill(C.lightbg); pdf.rect(margin, y, col, 6, 'F');
   textC(C.navy);
   pdf.setFont('helvetica','bold'); pdf.setFontSize(8);
@@ -1622,41 +1618,31 @@ async function generatePDF(){
   pdf.text(d.procedure||'—', margin+col/2+22, y+4.2, {maxWidth: col/2-24});
   y += 6 + secGap;
 
-  // ════════════════════════════════════════
-  // ALLERGIES (safety-critical — always first)
-  // ════════════════════════════════════════
+  // ALLERGIES
   if(d.allergies){
     sectionHeader('⚠  ALLERGIES & ALERTS', C.red);
     textBlock(d.allergies, C.red);
     y += secGap;
   }
 
-  // ════════════════════════════════════════
   // CASE IDENTITY
-  // ════════════════════════════════════════
   sectionHeader('CASE IDENTITY', C.navy);
   dataRow('MRN',         d.mrn,       'Age / Sex',  d.age_sex,   C.navy, true);
   dataRow('Attending',   d.attending, 'Procedure',  d.procedure, C.navy, false);
   dataRow('Anesthesia',  d.anesthesia,'ASA Class',  d.asa,       C.navy, true);
   y += secGap;
 
-  // ════════════════════════════════════════
   // POSITION & PREP
-  // ════════════════════════════════════════
   sectionHeader('POSITION & PREP', C.teal);
   dataRow('Position',    d.position,  'Prep Soln.', d.prep,   C.teal, true);
   dataRow('Draping',     d.draping,   'Foley',      d.foley,  C.teal, false);
   dataRow('NGT/OGT',     d.ngt,       'Bovie Pad',  d.bovie,  C.teal, true);
   y += secGap;
 
-  // ════════════════════════════════════════
-  // DIAGRAMS (side-by-side panels)
-  // ════════════════════════════════════════
+  // DIAGRAMS
   await renderDiagrams();
 
-  // ════════════════════════════════════════
   // ANTIBIOTICS & MEDICATIONS
-  // ════════════════════════════════════════
   const meds = [d.med1,d.med2,d.med3,d.med4].filter(Boolean);
   if(meds.length){
     sectionHeader('ANTIBIOTICS & MEDICATIONS', C.steel);
@@ -1669,17 +1655,13 @@ async function generatePDF(){
     y += secGap;
   }
 
-  // ════════════════════════════════════════
   // VTE & INSTRUMENTS
-  // ════════════════════════════════════════
   sectionHeader('VTE & INSTRUMENTS', C.teal);
   dataRow('VTE Prophylaxis', d.vte,       'Instruments', d.instruments, C.teal, true);
   dataRow('Scope Size',      d.scope,     'Special Req.',d.special,     C.teal, false);
   y += secGap;
 
-  // ════════════════════════════════════════
   // ATTENDING PREFERENCES
-  // ════════════════════════════════════════
   sectionHeader('ATTENDING PREFERENCES', C.navy);
   dataRow('Suture (Fascia)', d.sut_fascia, 'Suture (Skin)', d.sut_skin,   C.navy, true);
   dataRow('Closure',         d.closure,    'Drain',         d.drain,      C.navy, false);
@@ -1687,18 +1669,14 @@ async function generatePDF(){
   dataRow('Music/Setup',     d.music,      'Other',         d.pref_other, C.navy, false);
   y += secGap;
 
-  // ════════════════════════════════════════
   // POST-OP ORDERS
-  // ════════════════════════════════════════
   sectionHeader('POST-OP ORDERS', C.teal);
   dataRow('Diet',       d.diet,     'Activity',    d.activity,                             C.teal, true);
   dataRow('IVF',        d.ivf,      'Pain Mgmt',   d.pain,                                 C.teal, false);
   dataRow('Nausea',     d.nausea,   'Disposition', (d.dispo||'')+(d.disposition?' ('+d.disposition+')':''), C.teal, true);
   y += secGap;
 
-  // ════════════════════════════════════════
   // OPERATIVE DATA
-  // ════════════════════════════════════════
   sectionHeader('OPERATIVE DATA', C.navy);
   dataRow('Cut Time',    d.cut_time,    'Close Time',  d.close_time,   C.navy, true);
   dataRow('Total Time',  d.total_time,  'EBL (mL)',    d.ebl,          C.navy, false);
@@ -1706,35 +1684,27 @@ async function generatePDF(){
   dataRow('Transfusion', d.transfusion, 'Cell Saver',  d.cell_saver,   C.navy, false);
   y += secGap;
 
-  // ════════════════════════════════════════
   // SPECIMENS & PATHOLOGY
-  // ════════════════════════════════════════
   sectionHeader('SPECIMENS & PATHOLOGY', C.teal);
   dataRow('Specimen 1',    d.specimen1, 'Specimen 2',  d.specimen2,  C.teal, true);
   dataRow('Frozen Section',d.frozen,    'Path Types',  d.path_types, C.teal, false);
   y += secGap;
 
-  // ════════════════════════════════════════
   // INTRAOP EVENTS
-  // ════════════════════════════════════════
   if(d.intraop_events){
     sectionHeader('⚠  INTRAOP EVENTS / COMPLICATIONS', C.red);
     textBlock(d.intraop_events, C.red);
     y += secGap;
   }
 
-  // ════════════════════════════════════════
   // MISC NOTES
-  // ════════════════════════════════════════
   if(d.misc_notes){
     sectionHeader('MISC NOTES', C.navy);
     textBlock(d.misc_notes, C.navy);
     y += secGap;
   }
 
-  // ════════════════════════════════════════
   // FOOTER
-  // ════════════════════════════════════════
   checkPage(6);
   textC(C.grey); pdf.setFont('helvetica','italic'); pdf.setFontSize(7);
   pdf.text('Generated: ' + new Date().toLocaleString(), pageW - margin - 2, y+4, {align:'right'});
@@ -1742,12 +1712,10 @@ async function generatePDF(){
   return pdf.output('datauristring').split(',')[1];
 }
 
-// ── Export canvas at full resolution for PDF ──
 function exportCanvasForPDF(canvas) {
   return canvas.toDataURL('image/png');
 }
 
-// ── Detect whether the user has drawn anything on the diagram canvas ──
 function hasDiagramDrawing() {
   try {
     var c = bc;
@@ -1759,11 +1727,11 @@ function hasDiagramDrawing() {
       for (var x = stepX; x < w; x += stepX) {
         var px = ctx2.getImageData(x, y, 1, 1).data;
         var r = px[0], g = px[1], b = px[2];
-        if (r > 220 && g > 220 && b > 220) continue;       // near-white background
-        if (r > 180 && g > 140 && b > 120 && r > g && g > b) continue; // skin-tone anatomy
-        if (r < 60  && g < 60  && b < 60)  continue;       // dark anatomy outlines
-        if (Math.abs(r-g) < 25 && Math.abs(g-b) < 25 && r > 150) continue; // grey/beige bg
-        return true; // anything else is a user drawing
+        if (r > 220 && g > 220 && b > 220) continue;
+        if (r > 180 && g > 140 && b > 120 && r > g && g > b) continue;
+        if (r < 60  && g < 60  && b < 60)  continue;
+        if (Math.abs(r-g) < 25 && Math.abs(g-b) < 25 && r > 150) continue;
+        return true;
       }
     }
     return false;
@@ -1772,21 +1740,19 @@ function hasDiagramDrawing() {
   }
 }
 
-// ── Detect whether anything has been drawn on the blank canvas ──
 function hasBlankDrawing() {
   try {
     if (!blankCanvas || !blankCtx) return false;
     var w = blankCanvas.width, h = blankCanvas.height;
     if (!w || !h) return false;
-    // Sample a dense 20×20 grid across the full canvas
     var stepX = Math.max(1, Math.floor(w / 20));
     var stepY = Math.max(1, Math.floor(h / 20));
     for (var y = 0; y < h; y += stepY) {
       for (var x = 0; x < w; x += stepX) {
         var px = blankCtx.getImageData(x, y, 1, 1).data;
         var r = px[0], g = px[1], b = px[2];
-        if (r > 220 && g > 220 && b > 220) continue; // near-white background
-        return true; // any non-white pixel = drawing present
+        if (r > 220 && g > 220 && b > 220) continue;
+        return true;
       }
     }
     return false;
@@ -1795,65 +1761,9 @@ function hasBlankDrawing() {
   }
 }
 
-
-
-function submitViaForm(url, fields) {
-  return new Promise(function(resolve) {
-    var iframeName = 'orFrame' + Date.now();
-
-    // Build the form FIRST (before creating iframe)
-    var form = document.createElement('form');
-    form.setAttribute('method', 'POST');
-    form.setAttribute('action', url);
-    form.setAttribute('target', iframeName);
-    form.style.cssText = 'display:none;position:absolute;left:-9999px';
-
-    for (var key in fields) {
-      if (fields.hasOwnProperty(key)) {
-        var input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = key;
-        input.value = fields[key] || '';
-        form.appendChild(input);
-      }
-    }
-    document.body.appendChild(form);
-
-    // Create iframe AFTER form is ready
-    var iframe = document.createElement('iframe');
-    iframe.name = iframeName;
-    iframe.style.cssText = 'display:none;width:0;height:0;position:absolute;left:-9999px';
-
-    function cleanup() {
-      try { document.body.removeChild(form); } catch(e){}
-      try { document.body.removeChild(iframe); } catch(e){}
-    }
-
-    // Attach onload BEFORE appending to DOM (avoids premature fire)
-    // Use a flag so we only resolve once, and ignore the initial about:blank load
-    var loaded = false;
-    iframe.onload = function() {
-      if (!loaded) {
-        // First load is about:blank — ignore it, wait for real response
-        loaded = true;
-        return;
-      }
-      setTimeout(cleanup, 1000);
-      resolve();
-    };
-
-    document.body.appendChild(iframe);
-
-    // Small delay to ensure iframe is fully registered before submit
-    setTimeout(function() {
-      form.submit();
-      // Fallback: resolve after 12s regardless
-      setTimeout(function() { cleanup(); resolve(); }, 12000);
-    }, 100);
-  });
-}
-
-
+// ══════════════════════════════════════════
+// DEBUG SAVE TEST
+// ══════════════════════════════════════════
 async function debugSaveTest(){
   if(!SCRIPT_URL){ alert('No URL configured. Open Setup first.'); return; }
 
@@ -1879,7 +1789,6 @@ async function debugSaveTest(){
   out.textContent = 'Page URL: '   + loc + '\n';
   out.textContent += 'Script URL: ' + SCRIPT_URL + '\n';
 
-  // Build a minimal fake PDF and send via no-cors POST (same path as real save)
   const fakePdf = btoa('%PDF-1.4\n%%EOF');
   const fakeData = JSON.stringify({
     date: new Date().toLocaleDateString(),
@@ -1890,14 +1799,13 @@ async function debugSaveTest(){
     misc_notes: 'Sent at ' + new Date().toLocaleTimeString()
   });
 
-  const fd = new FormData();
-  fd.append('action', 'savepdf');
-  fd.append('pdf',    fakePdf);
-  fd.append('data',   fakeData);
-
   try {
-    out.textContent += '\nSending test save (no-cors POST)...';
-    await fetch(SCRIPT_URL, { method: 'POST', body: fd, mode: 'no-cors' });
+    out.textContent += '\nSending test save (form POST)...';
+    await submitViaForm(SCRIPT_URL, {
+      action: 'savepdf',
+      pdf:    fakePdf,
+      data:   fakeData
+    });
     out.textContent += ' sent.\n';
     out.textContent += '\nCheck your Google Sheet and Drive folder now.\n';
     out.textContent += 'Look for a row with "DEBUG TEST" in the Procedure column.\n';
@@ -1912,7 +1820,6 @@ async function debugSaveTest(){
   btn.textContent = '🔬 Test Again'; btn.disabled = false;
 }
 
-
 function showSaveError(title, msg, detail){
   document.getElementById('saveErrTitle').textContent = title;
   document.getElementById('saveErrMsg').textContent = msg || '(no message)';
@@ -1925,8 +1832,6 @@ function openDiagInfo(){ document.getElementById('diagInfoModal').classList.add(
 function closeDiagInfo(){ document.getElementById('diagInfoModal').classList.remove('open'); }
 
 function doPrint(){
-  // window.print() is blocked in iOS standalone/PWA mode.
-  // Open in a new tab which supports printing on all platforms.
   const w = window.open('', '_blank');
   if(w){
     w.document.write(document.documentElement.outerHTML);
@@ -1934,19 +1839,16 @@ function doPrint(){
     w.focus();
     setTimeout(()=>{ w.print(); }, 800);
   } else {
-    // Fallback if popup blocked
     window.print();
   }
 }
 
 function newCase(){
-  // confirm() is silently blocked in iOS standalone (PWA) mode — use custom modal
   document.getElementById('newCaseModal').classList.add('open');
 }
 function confirmNewCase(){
   document.getElementById('newCaseModal').classList.remove('open');
   document.querySelectorAll('textarea').forEach(el=>{ el.value=''; ar(el); });
-  // Re-populate today's date
   var dateEl = document.getElementById('f_date');
   if(dateEl){
     var now = new Date();
@@ -1955,11 +1857,9 @@ function confirmNewCase(){
   }
   document.querySelectorAll('input[type="text"],input[type="url"]').forEach(el=>{ el.value=''; });
   document.querySelectorAll('input[type="checkbox"]').forEach(el=>{ el.checked=false; });
-  // Clear rich text editor
   var rt=document.getElementById('f_misc'); if(rt){rt.innerHTML='';rt.setAttribute('data-empty','true');}
   clearCanvas(); diagUndoStack=[];
   clearBlankCanvas(); blankUndoStack=[];
-  clearFFCanvas();
   toast('New case started');
 }
 function cancelNewCase(){
@@ -1974,4 +1874,3 @@ function toast(msg,type=''){
 </script>
 </body>
 </html>
-
